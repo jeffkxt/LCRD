@@ -1,0 +1,5 @@
+# Test overlay: shorten the Python verifier timeout so the timeout path is
+# reachable in a quick run. Apply on top of the plugin patch.
+- id: lcrd
+  config:
+    pythonTimeoutMs: 2000
