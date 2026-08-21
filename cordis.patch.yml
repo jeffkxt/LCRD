@@ -1,0 +1,10 @@
+# The dsh-lcrd patch: LCRD hard-isolation over the harness extension points.
+# Mounts the root-anchor system-prompt section, the lcrd_plan tool, and the
+# post-execute rollback/termination gate in one plugin row.
+
+- insert:
+  - id: lcrd
+    name: '@deepseek-ai/dsh-lcrd'
+    config:
+      interaction: auto
+      maxRetries: 10
