@@ -1,1 +1,3 @@
 /node_modules/@deepseek-ai
+/lcrd-flow/阶段0基线确认：在legacy_project中安装依赖、运行48个pytest测试全部PASS、运行bench.py记-a6323081
+/lcrd-flow/在当前目录创建 batch_work,生成 item_0.txt~item_11.txt 共 12 个文件(每个内容恰为
