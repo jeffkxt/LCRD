@@ -38,7 +38,33 @@ export interface Verdict {
   reason: string
   /** True when the failure was a verifier exception (syntax/throw/timeout/unspawnable), not an ordinary mismatch. */
   exception?: boolean
+  /** Why the verifier threw, when it did; the recorder labels check rejections apart from task failures. */
+  exceptionKind?: VerdictExceptionKind
 }
+
+/**
+ * Why a verifier failed outside an ordinary mismatch. `invalid-condition` and
+ * `eval-error` mean the engine rejected the model's own check, so the failure
+ * says nothing about the work that check was meant to measure; `unspawnable`
+ * and `no-provider` are environment or configuration failures; `timeout`,
+ * `exit-code`, and `bad-output` come from the python script and the llm
+ * verifier respectively.
+ */
+export type VerdictExceptionKind =
+  /** The declared check was unbound, non-compiling, or held on every probe input. */
+  | 'invalid-condition'
+  /** The declared check threw while being evaluated. */
+  | 'eval-error'
+  /** The python check script exceeded its timeout. */
+  | 'timeout'
+  /** The python interpreter could not be started. */
+  | 'unspawnable'
+  /** The python check script exited non-zero. */
+  | 'exit-code'
+  /** The llm verifier did not answer in the pinned JSON form. */
+  | 'bad-output'
+  /** The llm verifier could not run because the agent carries no provider/model. */
+  | 'no-provider'
 
 /**
  * One learning-round declaration the model must emit before acquiring

@@ -3,6 +3,12 @@
 # post-execute rollback/termination gate in one plugin row. Learning mode is
 # enabled here so the shipped profile learns out of the box; every learning
 # field is a validated Config default a later patch layer may override.
+#
+# File-backed task flow (fileFlowEnabled, default false) is intentionally NOT
+# set here: standard deployments keep the plain in-context rollback flow.
+# Minimal deployments without web tools enable it by adding
+#   fileFlowEnabled: true
+# under config — the model then maintains task-flow/<task-slug>/ on disk.
 
 - insert:
   - id: lcrd
@@ -21,3 +27,4 @@
         - skill
         - subagent
         - web_fetch
+      fileFlowEnabled: true
