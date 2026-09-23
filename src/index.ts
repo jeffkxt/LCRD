@@ -18,31 +18,31 @@ import { defineTool, type PostToolDecision, type PreToolDecision, type ToolExecu
 import { setApprovalPolicy, type ApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
 import { registerAnchorSection, PROTOCOL_TEXT, PROTOCOL_VERSION } from './anchor.ts'
 import { classifyFlowPath, registerFileFlowSection, FILE_FLOW_DIR } from './file-flow.ts'
-import { FlowRecorder, defaultLogDir, type PlanContext } from './flow.ts'
-import { appendDatasetRows, dpoPairsForRun, defaultAttribution, ensureDatasetFiles, type TranscriptEntry } from './dataset.ts'
+import { FlowRecorder, defaultLogDir, planFingerprint, type PlanContext } from './flow.ts'
+import { appendDatasetRows, dpoPairsForRun, defaultAttribution, ensureDatasetFiles, withHoldRateReview, type TranscriptEntry } from './dataset.ts'
 import { loadAttribution, type Attribution } from './attribution.ts'
 import { loadHooks, isStepPlan, type LcrdHooks, type PlanCheckDecision, type ResultCheckDecision } from './hooks.ts'
-import { clipSummary, summarizeArguments, summarizeResult } from './instrumentation.ts'
+import { clipSummary, describeStrictness, summarizeArguments, summarizeResult } from './instrumentation.ts'
 import type { LearnDeclaration, LearnVerdict, StepPlan, Verdict } from './types.ts'
-import { runVerifier } from './verifiers.ts'
+import { conditionRejection, probeExpression, runVerifier } from './verifiers.ts'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, join, sep } from 'node:path'
 
 /** The per-task flow recorder, its default log directory, and its folder-suffix helper (flow-export API). */
-export { FlowRecorder, defaultLogDir, pluginVersion, shortAgentId } from './flow.ts'
+export { FlowRecorder, defaultLogDir, pluginVersion, planFingerprint, shortAgentId } from './flow.ts'
 /** The recorded-event vocabulary: envelope, schema version, stream and run-meta file names. */
 export { FLOW_SCHEMA_VERSION, FLOW_STREAM_FILE, RUN_META_FILE } from './flow.ts'
 export type { FlowEvent, FlowEventEnvelope, PlanContext, RecordedFlowEvent, RunMeta } from './flow.ts'
 /** The version of the injected protocol text and corrective notices. */
 export { PROTOCOL_VERSION } from './anchor.ts'
-/** The exogenous verifier API: payload rendering, the code verifier, and the plan-time probes. */
-export { probeExpression, probeHoldRate, resultPayload, verifyAssert } from './verifiers.ts'
+/** The exogenous verifier API: payload rendering, the code verifier, the plan-time probes, and the shared condition rejection. */
+export { conditionRejection, probeExpression, probeHoldRate, resultPayload, verifyAssert } from './verifiers.ts'
 export type { ConditionProbe, VerifyPayload } from './verifiers.ts'
 /** The record-resolution instrumentation API: assertion strictness, relaxation axes, and tool summaries. */
 export { clipSummary, describeStrictness, relaxationAxes, specExpressions, summarizeArguments, summarizeResult } from './instrumentation.ts'
 export type { AssertionStrictness, RelaxationAxis, ResultSummary } from './instrumentation.ts'
-/** The dataset API: the failure taxonomy, per-run row construction, and the append path. */
+/** The dataset API: the failure taxonomy, per-run row construction, the append path, and the hold-rate review wrapper. */
 export {
   DATASET_FILES,
   appendDatasetRows,
@@ -55,6 +55,7 @@ export {
   expressionsOf,
   renderTranscriptEntry,
   withExpressions,
+  withHoldRateReview,
 } from './dataset.ts'
 export type {
   DatasetRow,
@@ -207,6 +208,23 @@ export interface Config {
    * the plain protocol with no policy hook.
    */
   hooksModule?: string
+  /**
+   * Reject assert declarations whose expressions only assert existence, type,
+   * or non-emptiness — no pinned literal and no structured field read — at
+   * declaration time (default false). The discrimination gate (unbound,
+   * non-compiling, tautological) always runs; this form check is an
+   * additional deployment choice on top of it.
+   */
+  rejectPresenceOnly?: boolean
+  /**
+   * Reject assert declarations whose largest probe hold rate meets this
+   * ceiling, in `(0, 1]`, at declaration time. Absent (default) records the
+   * rate on the plan event without enforcing it. With the gate on, a newly
+   * recorded verdict can no longer carry a rate at or above the ceiling;
+   * `withHoldRateReview` therefore matters when re-exporting a corpus that
+   * was recorded before the gate was turned on.
+   */
+  declarationMaxHoldRate?: number
 }
 
 export const Config = z.object({
@@ -231,6 +249,8 @@ export const Config = z.object({
   datasetDir: z.string().default(undefined as unknown as string),
   attributionModule: z.string().default(undefined as unknown as string),
   hooksModule: z.string().default(undefined as unknown as string),
+  rejectPresenceOnly: z.boolean().default(false),
+  declarationMaxHoldRate: z.number().default(undefined as unknown as number),
 })
 
 /** The `{kind:'plugin'}` source stamped on every injected context, concretely typed so spreads never widen to the MessageSource union. */
@@ -391,6 +411,50 @@ function parseVerifier(raw: unknown): StepPlan['verifier'] {
   /* v8 ignore stop */
 }
 
+/** The declaration-time gates the declaration validator enforces: presence-only rejection and the hold-rate ceiling. */
+interface DeclarationPolicy {
+  rejectPresenceOnly: boolean
+  maxHoldRate: number | undefined
+}
+
+/**
+ * Enforce the declaration-time gates on one step plan: every assert condition
+ * must compile and pass the discrimination probe, and — when the deployment
+ * enabled them — the declaration must not be presence-only and must hold on
+ * fewer probe inputs than the configured ceiling. Python and llm verifiers
+ * have no JS condition list to probe and pass unconditionally; their checks
+ * are still rejected by the post-execute verifier when invalid.
+ * @param plan - the plan under declaration (the model's, or a hook's replacement).
+ * @param policy - the configured declaration gates.
+ * @throws when any condition or the declaration's form fails a gate.
+ */
+function validateDeclaration(plan: StepPlan, policy: DeclarationPolicy): void {
+  if (plan.verifier.kind !== 'assert') return
+  const conditions = plan.verifier.conditions
+  for (const condition of conditions) {
+    const probe = probeExpression(condition)
+    if (probe === 'unbound' || probe === 'tautological') {
+      throw new Error(conditionRejection(condition, probe))
+    }
+    if (probe === 'invalid') {
+      throw new Error(`断言无法编译: ${condition}`)
+    }
+  }
+  if (!policy.rejectPresenceOnly && policy.maxHoldRate === undefined) return
+  const strictness = describeStrictness(plan.verifier)
+  if (policy.rejectPresenceOnly && strictness.presenceOnly) {
+    throw new Error(`断言只断言存在性或类型(presence-only),未钉住任何字面量或结构化字段: ${conditions.join('; ')}`)
+  }
+  if (policy.maxHoldRate !== undefined) {
+    // L1 already rejected every unbound/non-compiling condition, so every
+    // expression was probed and the declaration's max hold rate is measured.
+    const rate = strictness.maxHoldRate as number
+    if (rate >= policy.maxHoldRate) {
+      throw new Error(`断言探测通过率 ${rate.toFixed(2)} ≥ 上限 ${policy.maxHoldRate.toFixed(2)},约束过弱: ${conditions.join('; ')}`)
+    }
+  }
+}
+
 /**
  * Install the protocol. `plans` holds each agent's latest declared step plan,
  * `failures` counts its consecutive verifier failures, and `terminated` marks
@@ -434,10 +498,22 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   if (!Number.isInteger(fileFlowPathViolationsMax) || fileFlowPathViolationsMax < 1) {
     throw new Error('lcrd-hard-isolation: `fileFlowPathViolationsMax` must be an integer >= 1')
   }
-  /** The attribution bundle: a configured module, or the log-heuristic default. */
-  const attribution: Attribution = config.attributionModule === undefined
-    ? defaultAttribution
-    : await loadAttribution(config.attributionModule)
+  if (config.declarationMaxHoldRate !== undefined && !(config.declarationMaxHoldRate > 0 && config.declarationMaxHoldRate <= 1)) {
+    throw new Error('lcrd-hard-isolation: `declarationMaxHoldRate` must be in (0, 1]')
+  }
+  /** The declaration-time gates: presence-only rejection and the optional hold-rate ceiling. */
+  const declarationPolicy: DeclarationPolicy = {
+    rejectPresenceOnly: config.rejectPresenceOnly as boolean,
+    maxHoldRate: config.declarationMaxHoldRate,
+  }
+  /**
+   * The attribution bundle: a configured module owns its labels wholesale and
+   * is never wrapped; the log-heuristic default gains the hold-rate review
+   * only when a ceiling is configured (no-op when it is not).
+   */
+  const attribution: Attribution = config.attributionModule !== undefined
+    ? await loadAttribution(config.attributionModule)
+    : withHoldRateReview(defaultAttribution, config.declarationMaxHoldRate)
   /** The policy hook: a configured module, or none (plain protocol). */
   const hooks: LcrdHooks | undefined = config.hooksModule === undefined
     ? undefined
@@ -445,14 +521,22 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
 
   const plans = new WeakMap<Agent, StepPlan>()
   const failures = new WeakMap<Agent, number>()
+  /**
+   * Fingerprint of the plan whose last verification failed, so an identical
+   * redeclaration of that same failed method is rejected at declaration time.
+   * Cleared when a verification passes and when a new user command starts a
+   * fresh task.
+   */
+  const failedPlanKeys = new WeakMap<Agent, string>()
   /** Policy-hook interceptions (deny / block / failing hook), bounded by `maxRetries` independently of the task budget. */
   const hookInterceptions = new WeakMap<Agent, number>()
   /**
-   * Executions whose own result already states a hook termination decided during
-   * the tool body. The terminated guard must leave that specific message intact
+   * Executions whose own result already states a terminal decision made during
+   * the tool body — a policy-hook termination or a repeated-failed-declaration
+   * termination. The terminated guard must leave that specific message intact
    * on the terminating call; only later calls get the generic notice.
    */
-  const hookTerminalExecutions = new WeakSet<object>()
+  const terminalExecutions = new WeakSet<object>()
   /** The verdict the model last saw, so the next declaration records its decision context. */
   const lastVerdict = new WeakMap<Agent, { pass: boolean; reason: string; verifierKind: string }>()
   /** Runs whose dataset export already happened, so disposal and exit never double-append. */
@@ -788,6 +872,16 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         verifier: parseVerifier(args.verifier),
       }
       const callId = String(exec.callId)
+      // Declaration-time gates first: the model's own declaration must clear
+      // the discrimination and form checks before any hook sees it.
+      try {
+        validateDeclaration(declared, declarationPolicy)
+      } catch (error) {
+        plans.delete(agent)
+        /* v8 ignore next -- validateDeclaration throws only Error */
+        const message = error instanceof Error ? error.message : String(error)
+        throw new Error(`lcrd_plan: ${message}`)
+      }
       // The policy hook runs on the completed declaration. A replacement plan is
       // silent to the model — the result text below still echoes the declaration —
       // while LCRD stores and verifies with the effective plan.
@@ -801,7 +895,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           const count = recordHookInterception(agent, 'hook-error', `checkPlan: ${reason}`)
           if (count >= maxRetries) {
             terminated.add(agent)
-            hookTerminalExecutions.add(exec)
+            terminalExecutions.add(exec)
             throw new Error(`[LCRD] 策略检查连续异常 ${count} 次,任务已终止转人工: ${reason}。停止所有工具调用,向用户报告失败原因。`)
           }
           throw error
@@ -813,7 +907,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           plans.delete(agent)
           if (count >= maxRetries) {
             terminated.add(agent)
-            hookTerminalExecutions.add(exec)
+            terminalExecutions.add(exec)
             throw new Error(`[LCRD] 子任务声明连续被外部策略拒绝 ${count} 次,任务已终止转人工: ${decision.reason}。停止所有工具调用,向用户报告失败原因。`)
           }
           throw new Error(`[LCRD] 子任务声明被外部策略拒绝: ${decision.reason}。请调整目标或方法后重新调用 lcrd_plan。`)
@@ -823,8 +917,43 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
             plans.delete(agent)
             throw new Error('hooks module checkPlan returned a malformed plan: goal, stop_condition, feasibility, and a verifier with a non-empty expression list are required')
           }
+          // A hook replacement crosses the same declaration gates: policy may
+          // rewrite the plan, but it cannot install a check the engine rejects.
+          try {
+            validateDeclaration(decision.plan, declarationPolicy)
+          } catch (error) {
+            plans.delete(agent)
+            /* v8 ignore next -- validateDeclaration throws only Error */
+            const message = error instanceof Error ? error.message : String(error)
+            throw new Error(`hooks module checkPlan returned a declaration the engine rejects: ${message}`)
+          }
           plan = decision.plan
         }
+      }
+      // L4: reject an identical redeclaration of the plan whose last
+      // verification failed — the rollback forbids retrying the same method
+      // unchanged. Runs after the hook so policy sees the declaration first.
+      const fingerprint = planFingerprint({
+        goal: plan.goal,
+        stop: plan.stop_condition,
+        verifier: plan.verifier.kind,
+        verifierSpec: plan.verifier,
+      })
+      if (failedPlanKeys.get(agent) === fingerprint) {
+        plans.delete(agent)
+        const count = (failures.get(agent) ?? 0) + 1
+        failures.set(agent, count)
+        const recorder = ensureFlow(agent)
+        if (count >= maxRetries) {
+          terminated.add(agent)
+          terminalExecutions.add(exec)
+          recorder.push({ type: 'intercept', kind: 'terminated', detail: '原样重复上次失败的子任务声明' })
+          recorder.log(`[LCRD] repeat-failed declaration terminated (${count}/${maxRetries}): ${plan.goal}`)
+          flush(agent)
+          throw new Error(`[LCRD] 连续 ${count} 次原样重复上次失败的子任务声明,任务已终止转人工: ${plan.goal}。停止所有工具调用,向用户报告失败原因,等待人工指令。`)
+        }
+        recorder.log(`[LCRD] repeat-failed declaration rejected (${count}/${maxRetries}): ${plan.goal}`)
+        throw new Error(`[LCRD] 子任务声明与上次失败的声明原样相同(第 ${count}/${maxRetries} 次): ${plan.goal}。禁止原样重试,请更换策略或参数后重新声明 lcrd_plan。`)
       }
       plans.set(agent, plan)
       const recorder = ensureFlow(agent)
@@ -964,6 +1093,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       ensureFlow(agent).markAnchorDigest(anchor.digest, anchor.excerpt)
       plans.delete(agent)
       failures.delete(agent)
+      failedPlanKeys.delete(agent)
       learning.delete(agent)
       lastVerdict.delete(agent)
       invalidChecks.delete(agent)
@@ -1148,7 +1278,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
 
     // A policy hook terminated the task from inside this call's own body, so its
     // specific terminal message is the result: do not replace it with the guard.
-    if (hookTerminalExecutions.has(exec)) return next()
+    if (terminalExecutions.has(exec)) return next()
 
     if (terminated.has(agent)) {
       ensureFlow(agent).log(`[LCRD] terminated: tool=${exec.name} blocked`)
@@ -1350,6 +1480,9 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         tool: exec.name,
       })
       failures.delete(agent)
+      // The pass clears the repeated-failed-declaration fingerprint: the next
+      // declaration may legitimately match an older failed method.
+      failedPlanKeys.delete(agent)
       // A post-learning re-solve that passes completes the task and resets the
       // learning budget; the plain path stays untouched.
       const passedState = learning.get(agent)
@@ -1363,6 +1496,16 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       flush(agent)
       return next()
     }
+
+    // Any failed verification pins the governing plan's fingerprint, so an
+    // identical redeclaration is rejected at the next lcrd_plan before any
+    // early return (check-only, learning entry, termination) can skip it.
+    failedPlanKeys.set(agent, planFingerprint({
+      goal: plan.goal,
+      stop: plan.stop_condition,
+      verifier: plan.verifier.kind,
+      verifierSpec: plan.verifier,
+    }))
 
     const failedCheck = verdict.exceptionKind === 'invalid-condition' || verdict.exceptionKind === 'eval-error'
     // A failed check is the engine rejecting the model's own verification, not a

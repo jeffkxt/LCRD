@@ -150,6 +150,22 @@ export function probeExpression(expression: string): ConditionProbe {
 }
 
 /**
+ * The rejection reason for one unbound or tautological condition, shared by
+ * the declaration-time gate and the post-execute verifier so both name the
+ * same cause for the same condition.
+ * @param condition - the model-authored condition the probe rejected.
+ * @param kind - `unbound` when it reads no bound variable, `tautological` when it holds on every probe input.
+ * @returns the model-facing rejection reason.
+ */
+export function conditionRejection(condition: string, kind: 'unbound' | 'tautological'): string {
+  if (kind === 'unbound') return `断言必须引用 result/content/isError 之一: ${condition}`
+  const negationHint = condition.includes('!')
+    ? ';否定式条件对所有探测输入恒真,无法通过区分度检查,需要验证"不存在"时请使用 llm 校验器或改述为肯定式'
+    : ''
+  return `断言对所有探测输入都为真,缺少区分度,请改用引用 result/content 具体内容的条件: ${condition}${negationHint}`
+}
+
+/**
  * Structured assertions: every condition is a JS expression over
  * `result` (the structured value), `content` (the rendered text), or
  * `isError`; all must hold and none may be trivially true. A failed tool
@@ -172,7 +188,7 @@ export function verifyAssert(conditions: string[], payload: VerifyPayload): Verd
   }
   for (const condition of conditions) {
     if (!referencesBound(condition)) {
-      return { pass: false, reason: `断言必须引用 result/content/isError 之一: ${condition}`, exception: true, exceptionKind: 'invalid-condition' }
+      return { pass: false, reason: conditionRejection(condition, 'unbound'), exception: true, exceptionKind: 'invalid-condition' }
     }
     let evaluator: (result: unknown, content: unknown, isError: boolean) => boolean
     try {
@@ -183,10 +199,7 @@ export function verifyAssert(conditions: string[], payload: VerifyPayload): Verd
       return { pass: false, reason: `断言求值失败: ${error instanceof Error ? error.message : String(error)} (条件: ${condition})`, exception: true, exceptionKind: 'invalid-condition' }
     }
     if (holdsOnAllProbes(evaluator)) {
-      const negationHint = condition.includes('!')
-        ? ';否定式条件对所有探测输入恒真,无法通过区分度检查,需要验证"不存在"时请使用 llm 校验器或改述为肯定式'
-        : ''
-      return { pass: false, reason: `断言对所有探测输入都为真,缺少区分度,请改用引用 result/content 具体内容的条件: ${condition}${negationHint}`, exception: true, exceptionKind: 'invalid-condition' }
+      return { pass: false, reason: conditionRejection(condition, 'tautological'), exception: true, exceptionKind: 'invalid-condition' }
     }
     let holds = false
     try {

@@ -195,6 +195,19 @@ export declare function pluginVersion(): string;
  * @returns the 8-hex FNV-1a hash suffix.
  */
 export declare function shortAgentId(id: string): string;
+/**
+ * Normalized fingerprint of one declaration: its goal, stop condition, and
+ * verifier specification. Two declarations with the same fingerprint retry the
+ * same method, which is what the rollback symbol forbids.
+ * @param plan - a plan event, or a step plan's goal/stop plus its verifier fields.
+ * @returns the fingerprint string compared across declarations.
+ */
+export declare function planFingerprint(plan: {
+    goal: string;
+    stop: string;
+    verifier: string;
+    verifierSpec?: VerifierSpec;
+}): string;
 /** Options for {@link FlowRecorder}. */
 export interface FlowRecorderOptions {
     /** Artifact directory; defaults to {@link defaultLogDir}. */

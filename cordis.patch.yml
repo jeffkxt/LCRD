@@ -27,4 +27,4 @@
         - skill
         - subagent
         - web_fetch
-      fileFlowEnabled: true
+      fileFlowEnabled: false

@@ -11,20 +11,20 @@
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 /** The per-task flow recorder, its default log directory, and its folder-suffix helper (flow-export API). */
-export { FlowRecorder, defaultLogDir, pluginVersion, shortAgentId } from './flow.ts';
+export { FlowRecorder, defaultLogDir, pluginVersion, planFingerprint, shortAgentId } from './flow.ts';
 /** The recorded-event vocabulary: envelope, schema version, stream and run-meta file names. */
 export { FLOW_SCHEMA_VERSION, FLOW_STREAM_FILE, RUN_META_FILE } from './flow.ts';
 export type { FlowEvent, FlowEventEnvelope, PlanContext, RecordedFlowEvent, RunMeta } from './flow.ts';
 /** The version of the injected protocol text and corrective notices. */
 export { PROTOCOL_VERSION } from './anchor.ts';
-/** The exogenous verifier API: payload rendering, the code verifier, and the plan-time probes. */
-export { probeExpression, probeHoldRate, resultPayload, verifyAssert } from './verifiers.ts';
+/** The exogenous verifier API: payload rendering, the code verifier, the plan-time probes, and the shared condition rejection. */
+export { conditionRejection, probeExpression, probeHoldRate, resultPayload, verifyAssert } from './verifiers.ts';
 export type { ConditionProbe, VerifyPayload } from './verifiers.ts';
 /** The record-resolution instrumentation API: assertion strictness, relaxation axes, and tool summaries. */
 export { clipSummary, describeStrictness, relaxationAxes, specExpressions, summarizeArguments, summarizeResult } from './instrumentation.ts';
 export type { AssertionStrictness, RelaxationAxis, ResultSummary } from './instrumentation.ts';
-/** The dataset API: the failure taxonomy, per-run row construction, and the append path. */
-export { DATASET_FILES, appendDatasetRows, classifyFailure, classifyRelaxationCause, classifyTrainability, datasetRowsForRun, dpoPairsForRun, ensureDatasetFiles, expressionsOf, renderTranscriptEntry, withExpressions, } from './dataset.ts';
+/** The dataset API: the failure taxonomy, per-run row construction, the append path, and the hold-rate review wrapper. */
+export { DATASET_FILES, appendDatasetRows, classifyFailure, classifyRelaxationCause, classifyTrainability, datasetRowsForRun, dpoPairsForRun, ensureDatasetFiles, expressionsOf, renderTranscriptEntry, withExpressions, withHoldRateReview, } from './dataset.ts';
 export type { DatasetRow, DpoPair, FailureClass, RelaxationCause, RelaxationRow, RunRow, RunRows, Trainability, TranscriptEntry, } from './dataset.ts';
 /** The attribution hook: the replaceable failure/relaxation/trainability classifier bundle and its loader. */
 export { defaultAttribution } from './dataset.ts';
@@ -158,6 +158,23 @@ export interface Config {
      * the plain protocol with no policy hook.
      */
     hooksModule?: string;
+    /**
+     * Reject assert declarations whose expressions only assert existence, type,
+     * or non-emptiness — no pinned literal and no structured field read — at
+     * declaration time (default false). The discrimination gate (unbound,
+     * non-compiling, tautological) always runs; this form check is an
+     * additional deployment choice on top of it.
+     */
+    rejectPresenceOnly?: boolean;
+    /**
+     * Reject assert declarations whose largest probe hold rate meets this
+     * ceiling, in `(0, 1]`, at declaration time. Absent (default) records the
+     * rate on the plan event without enforcing it. With the gate on, a newly
+     * recorded verdict can no longer carry a rate at or above the ceiling;
+     * `withHoldRateReview` therefore matters when re-exporting a corpus that
+     * was recorded before the gate was turned on.
+     */
+    declarationMaxHoldRate?: number;
 }
 export declare const Config: z<Schemastery.ObjectS<{
     maxRetries: z<number, number>;
@@ -179,6 +196,8 @@ export declare const Config: z<Schemastery.ObjectS<{
     datasetDir: z<string, string>;
     attributionModule: z<string, string>;
     hooksModule: z<string, string>;
+    rejectPresenceOnly: z<boolean, boolean>;
+    declarationMaxHoldRate: z<number, number>;
 }>, Schemastery.ObjectT<{
     maxRetries: z<number, number>;
     pythonCommand: z<string, string>;
@@ -199,6 +218,8 @@ export declare const Config: z<Schemastery.ObjectS<{
     datasetDir: z<string, string>;
     attributionModule: z<string, string>;
     hooksModule: z<string, string>;
+    rejectPresenceOnly: z<boolean, boolean>;
+    declarationMaxHoldRate: z<number, number>;
 }>>;
 /**
  * Install the protocol. `plans` holds each agent's latest declared step plan,

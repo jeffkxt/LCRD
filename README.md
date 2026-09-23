@@ -68,6 +68,8 @@ Add `config` under the `lcrd` entry in `cordis.yml` (defaults are the shipped co
       # workspaceRoot: D:/workspace  # 工作区绝对路径(任务产物落点),默认取 session.header.cwd → 沙箱 workspaceRoot → DSH_CWD → fs 后端工作根
       # fileFlowTools: [str_replace_editor, write, edit]  # 守卫检查的文件工具集,默认极简部署三件套
       # failedCheckConsumesRetry: true  # 断言被引擎判为无效是否消耗任务重试预算,默认 true(关闭则用独立计数限制)
+      # rejectPresenceOnly: false       # 声明期拒绝 presence-only 断言,默认 false
+      # declarationMaxHoldRate: 0.9     # 声明期探测通过率上限 (0,1],默认不启用
       # datasetExport: off             # 任务结束是否自动导出数据集:off(默认)/ run 结束时追加 dataset.jsonl、trainable.jsonl、needs_review.jsonl 与 dpo.jsonl
       # datasetDir: ./dataset          # 数据集目录,默认取 flow 日志目录同级的 dataset/
       # attributionModule: ./domain-attribution.mjs  # 领域归因 bundle 的模块路径/包名,默认用日志启发式分类学
@@ -75,6 +77,8 @@ Add `config` under the `lcrd` entry in `cordis.yml` (defaults are the shipped co
 ```
 
 The retry budget counts what it should measure. By default a step whose declared check the engine rejected (`invalid-condition`, `eval-error`) consumes the same budget as a step that ran and did not meet its stop condition, which is the historical behaviour; setting `failedCheckConsumesRetry: false` counts those failures against their own budget instead — bounded by `maxRetries` and reported as `invalidChecks` in each declaration's context — so the task budget measures only real step outcomes. Running both configurations over the same tasks is the intended A/B.
+
+Declaration-time gates reject a speculative plan before it can govern anything. Every assert condition must compile, reference `result`/`content`/`isError`, and fail on at least one probe input — the same rules the post-execute verifier enforces, checked at `lcrd_plan` so a rejected declaration never reaches the stream or the plan map. With `rejectPresenceOnly: true` the declaration must also pin a literal or read a structured field; with `declarationMaxHoldRate` set in `(0, 1]` its largest probe hold rate must stay below the ceiling. The plugin does not judge whether `stop_condition` semantically matches the verifier expressions — that trust boundary belongs to a `checkPlan` policy hook, which may deny or replace a declaration whose stop condition and check disagree. After a verification fails, redeclaring that same failed plan verbatim is rejected (and terminates at `maxRetries`); a new user command or a later pass clears the fingerprint so a legitimately revised method can return.
 
 ## File-backed task flow (fileFlowEnabled)
 
@@ -101,7 +105,7 @@ In `auto` mode the system prompt also steers the model not to request permission
 
 | kind | Model-supplied arguments | Verification |
 |---|---|---|
-| `assert` | `conditions: string[]` | A list of JS expressions over `result` (the structured tool value), `content` (the rendered text), or `isError`; each must reference at least one and must not hold on every probe input; all must hold to pass. A failed tool result always fails outright. The list must be non-empty: `lcrd_plan` rejects an empty one at the declaration, and a declaration that reaches the verifier anyway fails as an invalid check instead of passing everything |
+| `assert` | `conditions: string[]` | A list of JS expressions over `result` (the structured tool value), `content` (the rendered text), or `isError`; each must reference at least one and must not hold on every probe input; all must hold to pass. Unbound, non-compiling, and tautological conditions are rejected at `lcrd_plan`, so they never become an effective check. A failed tool result always fails outright. The list must be non-empty: `lcrd_plan` rejects an empty one at the declaration, and a declaration that reaches the verifier anyway fails as an invalid check instead of passing everything |
 | `python` | `checks: string[]` | A list of Python expressions over `result` / `content` / `isError`, evaluated by the plugin-fixed script template (the environment also injects `json`); same rules as assert, including the non-empty list; timeout kills and fails |
 | `llm` | none | An independent session with a plugin-fixed prompt (root-anchor protocol + goal/stop_condition), temperature 0; non-JSON or non-PASS always fails |
 
@@ -128,10 +132,10 @@ Expected logs: `verify FAIL (1/3)` → `(2/3)` → `(3/3)` → `[LCRD] terminate
 ### 3. Always-true condition attack (blocked)
 
 ```
-调用 lcrd_plan(goal='攻击演示', stop_condition='无', feasibility=true, verifier 为 {kind:'assert', conditions:['true']}),然后调用 fs 读取任意文件。预期校验被拒。
+调用 lcrd_plan(goal='攻击演示', stop_condition='无', feasibility=true, verifier 为 {kind:'assert', conditions:['true']}),然后调用 fs 读取任意文件。预期声明被拒。
 ```
 
-Expected log: `verify FAIL` reason contains "必须引用 result". Writing `result === result` yields reason "缺少区分度".
+Expected log: `lcrd_plan:` rejection containing "必须引用 result". Writing `result === result` is rejected at the declaration with "缺少区分度".
 
 ### 4. Python verifier
 
@@ -160,7 +164,7 @@ Expected log: `[LCRD] missing plan: tool=read blocked`
 ### 7. Infeasible plan (feasibility=false)
 
 ```
-调用 lcrd_plan(goal='测试', stop_condition='无', feasibility=false, verifier 为 {kind:'assert', conditions:['true']}),然后调用 fs 读取 D:/deepseek/deepseek-harness/package.json。
+调用 lcrd_plan(goal='测试', stop_condition='无', feasibility=false, verifier 为 {kind:'assert', conditions:['result !== undefined']}),然后调用 fs 读取 D:/deepseek/deepseek-harness/package.json。
 ```
 
 Expected log: `[LCRD] infeasible: tool=read blocked`
@@ -261,11 +265,22 @@ The in-process path writes `dataset.jsonl`, `relaxations.jsonl`, `runs.jsonl`, a
 
 The DPO `chosen` side is constructed: it restores the pre-relaxation check onto the model's own declaration, and every pair is marked `"synthetic": true` with the `repair` name and the axes it reversed. `prompt` is the model-visible transcript up to the declaration (user, assistant text, tool calls, tool results, engine notices tagged `source=plugin`) and does not include the system prompt.
 
+### Per-task views (`lcrd:view`)
+
+The shared dataset files are one append-only corpus across every task. `pnpm run lcrd:view` projects them into `dataset/by-task/<task_group>/`, one directory per task group holding the same file names, so a consumer can read one task family without filtering:
+
+```sh
+pnpm run lcrd:view                                 # default dataset dir → dataset/by-task/
+pnpm run lcrd:view -- --dataset <dir> --out <dir>  # explicit locations
+```
+
+Rows that carry `task_group` (`dataset.jsonl`, `trainable.jsonl`, `needs_review.jsonl`, `runs.jsonl`) group directly. `relaxations.jsonl`, `anchor-judge.jsonl`, and `dpo.jsonl` (through `meta.run_id`) join back through a run table built from every row that has both `run_id` and `task_group`; a row whose run never appears in that table lands in `_unknown/` rather than being dropped, so a join gap stays visible. Each run rebuilds the whole `by-task/` tree, so a group that left the shared files does not linger, and the shared files themselves are only read — the writers (`datasetExport`, `lcrd:dataset`, `lcrd:pipeline`) are untouched. Group names are sanitized into single path segments; a name that would escape the view (`..`, empty) falls into `_unknown/`. The view refuses an `--out` equal to the dataset directory or one of its ancestors, because rebuilding would delete the source it reads.
+
 ### Pluggable attribution (`attributionModule` / `--attribution`)
 
 The default attribution is the log-heuristic taxonomy in `dataset.ts`: it maps a verdict's recorded reason and exception kind to a `FailureClass`, a loosened declaration to a `RelaxationCause`, and every row to a `Trainability`. A professional task family often has its own failure vocabulary — a domain-specific classifier that better names what went wrong for its tasks. The attribution hook lets such a domain replace the whole taxonomy without forking the plugin:
 
-```ts
+```js
 // domain-attribution.mjs — default export, or export an object without `default`
 export default {
   classifyFailure(reason, exceptionKind) { /* domain rules */ },
@@ -300,6 +315,8 @@ export default {
 
 - **Two points.** `checkPlan` runs on the completed declaration, before it governs execution; `checkResult` runs after the exogenous verifier produced its verdict. Both may be async and should observe the call's `signal`.
 - **A replacement plan is silent to the model.** `lcrd_plan`'s result still echoes the declaration, while the flow artifacts record the effective plan and the verifier runs the effective check. Two consequences are visible: a failed verification quotes the effective condition in its reason, and a replacement that flips `feasibility` to false takes the existing infeasible branch, which does tell the model. A domain that must not disclose its check can choose the `llm` verifier, whose fixed prompt owns the reason text.
+- **A replacement plan crosses the same declaration gates.** Policy may rewrite the plan, but a replacement whose conditions the engine rejects fails loud with `engine rejects`, so a hook cannot install an unchecked check.
+- **Stop-condition consistency is a hook decision.** The core does not parse `stop_condition` semantics; a `checkPlan` that sees a stop condition and verifier expressions that disagree can `deny` or `modify`.
 - **Interceptions consume no task retry budget.** `deny`, `block`, and a throwing hook are counted independently, bounded by `maxRetries`, and terminate the task for human review once they reach it; a new user command resets the count with the other per-task state. A `deny` also clears any earlier plan, so a rejected declaration cannot be bypassed by continuing with the previous one.
 - **A malformed replacement plan fails loud**, and a throwing hook propagates below the cap (the model sees the hook's error) and terminates at it.
 - The hook sees the result as LCRD's verifier saw it; a downstream `tools/post-execute` listener may still transform the accepted result afterwards.

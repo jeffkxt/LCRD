@@ -113,6 +113,14 @@ describe('Config', () => {
     expect(Config({}).hooksModule).toBeUndefined()
     expect(Config({ hooksModule: './policy-hooks.mjs' }).hooksModule).toBe('./policy-hooks.mjs')
   })
+
+  it('defaults the declaration gates off and accepts explicit values', () => {
+    const config = Config({})
+    expect(config.rejectPresenceOnly).toBe(false)
+    expect(config.declarationMaxHoldRate).toBeUndefined()
+    expect(Config({ rejectPresenceOnly: true }).rejectPresenceOnly).toBe(true)
+    expect(Config({ declarationMaxHoldRate: 0.5 }).declarationMaxHoldRate).toBe(0.5)
+  })
 })
 
 describe('resultPayload', () => {
@@ -888,7 +896,7 @@ describe('learning mode and protocol gates (real composition)', () => {
   const dirs: string[] = []
 
   /** Mount the plugin with learning enabled at a low threshold plus the file and learning fixture tools. */
-  async function setupLearning(options?: { maxLearningAttempts?: number; interaction?: 'auto' | 'auth' | 'manual'; learningEnabled?: boolean; maxRetries?: number; failedCheckConsumesRetry?: boolean; datasetExport?: 'off' | 'run'; datasetDir?: string; attributionModule?: string; hooksModule?: string }) {
+  async function setupLearning(options?: { maxLearningAttempts?: number; interaction?: 'auto' | 'auth' | 'manual'; learningEnabled?: boolean; maxRetries?: number; failedCheckConsumesRetry?: boolean; datasetExport?: 'off' | 'run'; datasetDir?: string; attributionModule?: string; hooksModule?: string; rejectPresenceOnly?: boolean; declarationMaxHoldRate?: number }) {
     const workDir = mkdtempSync(join(tmpdir(), 'lcrd-learn-'))
     const logDir = mkdtempSync(join(tmpdir(), 'lcrd-flow-log-'))
     const flowRoot = join(dirname(logDir), 'task-flow')
@@ -911,6 +919,8 @@ describe('learning mode and protocol gates (real composition)', () => {
       ...(options?.datasetDir === undefined ? {} : { datasetDir: options.datasetDir }),
       ...(options?.attributionModule === undefined ? {} : { attributionModule: options.attributionModule }),
       ...(options?.hooksModule === undefined ? {} : { hooksModule: options.hooksModule }),
+      ...(options?.rejectPresenceOnly === undefined ? {} : { rejectPresenceOnly: options.rejectPresenceOnly }),
+      ...(options?.declarationMaxHoldRate === undefined ? {} : { declarationMaxHoldRate: options.declarationMaxHoldRate }),
     })
     ctx.tools.register(defineContentToolFixture({
       name: 'str_replace_editor',
@@ -951,13 +961,17 @@ describe('learning mode and protocol gates (real composition)', () => {
     }
   }
 
-  /** Declare a plan whose assert can never pass, driving one verifier failure. */
-  async function declareFailingPlan(ctx: Context): Promise<void> {
+  /**
+   * Declare a plan whose assert can never pass, driving one verifier failure.
+   * Distinct attempts keep each redeclaration a new method for L4.
+   */
+  async function declareFailingPlan(ctx: Context, attempt = 0): Promise<void> {
+    const failValue = 999 - attempt
     await runTool(ctx, 'lcrd_plan', {
       goal: '必然失败',
-      stop_condition: '结果等于 999',
+      stop_condition: `结果等于 ${failValue}`,
       feasibility: true,
-      verifier: { kind: 'assert', conditions: ['result === 999'] },
+      verifier: { kind: 'assert', conditions: [`result === ${failValue}`] },
     })
   }
 
@@ -989,9 +1003,9 @@ describe('learning mode and protocol gates (real composition)', () => {
   it('drives verifier failures into learning mode and through a full round', async () => {
     const { ctx, workDir } = await setupLearning({ maxLearningAttempts: 3 })
     const product = join(workDir, 'f.py')
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 0)
     await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 1)
     const entered = await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
     expect(entered.isError).toBe(true)
     expect(entered.text).toContain('学习模式')
@@ -1036,7 +1050,7 @@ describe('learning mode and protocol gates (real composition)', () => {
     expect(passed.isError).toBe(false)
     expect(passed.text).toContain('自评通过')
     // Re-solve failure consumes one learning round, resets the phase, and returns to learn mode.
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 2)
     const roundFail = await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
     expect(roundFail.isError).toBe(true)
     expect(roundFail.text).toContain('学习后重解仍失败(第 2/3 轮)')
@@ -1049,7 +1063,7 @@ describe('learning mode and protocol gates (real composition)', () => {
     })
     await runTool(ctx, 'read', { path: join(workDir, 'doc.md') })
     await runTool(ctx, 'lcrd_learn_verify', { learned: true, evidence: '学会了' })
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 3)
     const exhausted = await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
     expect(exhausted.isError).toBe(true)
     expect(exhausted.text).toContain('学习次数已用尽')
@@ -1063,9 +1077,9 @@ describe('learning mode and protocol gates (real composition)', () => {
   it('terminates when two failed self-evaluations exhaust the budget, and resets on a user command', async () => {
     const { ctx, workDir } = await setupLearning({ maxLearningAttempts: 2 })
     const product = join(workDir, 'f.py')
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 0)
     await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 1)
     await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
     await runTool(ctx, 'lcrd_learn', {
       problem_analysis: 'a', knowledge_needed: 'b', learning_method: 'c', eval_criteria: 'd',
@@ -1117,9 +1131,9 @@ describe('learning mode and protocol gates (real composition)', () => {
   it('completes a task through a post-learning re-solve and resets the learning budget', async () => {
     const { ctx, workDir } = await setupLearning()
     const product = join(workDir, 'f.py')
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 0)
     await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
-    await declareFailingPlan(ctx)
+    await declareFailingPlan(ctx, 1)
     await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
     await runTool(ctx, 'lcrd_learn', {
       problem_analysis: '写法',
@@ -1244,6 +1258,9 @@ describe('learning mode and protocol gates (real composition)', () => {
     expect(await bad({ learningThreshold: 0 })).toContain('learningThreshold')
     expect(await bad({ maxLearningAttempts: 0 })).toContain('maxLearningAttempts')
     expect(await bad({ fileFlowPathViolationsMax: 0 })).toContain('fileFlowPathViolationsMax')
+    expect(await bad({ declarationMaxHoldRate: 0 })).toContain('declarationMaxHoldRate')
+    expect(await bad({ declarationMaxHoldRate: 1.5 })).toContain('declarationMaxHoldRate')
+    expect(await bad({ declarationMaxHoldRate: -1 })).toContain('declarationMaxHoldRate')
   })
 
   it('rejects protocol tools executed without an agent scope, and accepts llm and python verifier plans', async () => {
@@ -1357,7 +1374,7 @@ describe('learning mode and protocol gates (real composition)', () => {
       goal: '无效断言',
       stop_condition: 'x',
       feasibility: true,
-      verifier: { kind: 'assert', conditions: ['true'] },
+      verifier: { kind: 'python', checks: ['1 == 1'] },
     })
     await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })
     await runTool(ctx, 'lcrd_plan', {
@@ -1374,7 +1391,7 @@ describe('learning mode and protocol gates (real composition)', () => {
     expect(plans[1]?.context).toMatchObject({ failures: 1, phase: 'normal', lastPass: false, invalidChecks: 1 })
     expect(plans[1]?.context?.lastReason).toContain('必须引用')
     const verdicts = events.filter(event => event.type === 'verdict')
-    expect(verdicts[0]).toMatchObject({ verifierKind: 'assert', tool: 'read', exceptionKind: 'invalid-condition' })
+    expect(verdicts[0]).toMatchObject({ verifierKind: 'python', tool: 'read', exceptionKind: 'invalid-condition' })
     expect(verdicts[0]?.callId).toMatch(/^learn-/)
     // The failed call carries its own error detail, and its verdict names the referent.
     const failedCall = events.filter(event => event.type === 'tool').at(-1)
@@ -1391,7 +1408,7 @@ describe('learning mode and protocol gates (real composition)', () => {
       goal: '无效断言',
       stop_condition: 'x',
       feasibility: true,
-      verifier: { kind: 'assert', conditions: ['true'] },
+      verifier: { kind: 'python', checks: ['1 == 1'] },
     }
     await runTool(ctx, 'lcrd_plan', invalidPlan)
     const first = await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })
@@ -1405,6 +1422,192 @@ describe('learning mode and protocol gates (real composition)', () => {
     // Invalid checks are bounded by their own budget instead.
     expect(second.isError).toBe(true)
     expect(second.text).toContain('连续 2 次断言被引擎判为无效')
+  })
+
+  it('counts an identical redeclaration when the failed check never consumed the task budget', async () => {
+    const { ctx, workDir } = await setupLearning({ learningEnabled: false, failedCheckConsumesRetry: false })
+    const invalidPlan = {
+      goal: '无效断言', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'python', checks: ['1 == 1'] },
+    }
+    await runTool(ctx, 'lcrd_plan', invalidPlan)
+    await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })
+    const repeat = await runTool(ctx, 'lcrd_plan', invalidPlan)
+    expect(repeat.isError).toBe(true)
+    expect(repeat.text).toContain('原样相同')
+    expect(repeat.text).toContain('(第 1/')
+  })
+
+  it('rejects unbound, non-compiling, and tautological assert conditions at the declaration', async () => {
+    const { ctx, workDir, logDir } = await setupLearning({ learningEnabled: false })
+    const unbound = await runTool(ctx, 'lcrd_plan', {
+      goal: '恒真', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['true'] },
+    })
+    expect(unbound.isError).toBe(true)
+    expect(unbound.text).toContain('lcrd_plan: 断言必须引用')
+    const invalid = await runTool(ctx, 'lcrd_plan', {
+      goal: '语法错', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result ==='] },
+    })
+    expect(invalid.isError).toBe(true)
+    expect(invalid.text).toContain('断言无法编译')
+    const tautology = await runTool(ctx, 'lcrd_plan', {
+      goal: '恒等', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === result'] },
+    })
+    expect(tautology.isError).toBe(true)
+    expect(tautology.text).toContain('缺少区分度')
+    const negation = await runTool(ctx, 'lcrd_plan', {
+      goal: '否定', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['typeof content !== "undefined" || typeof content === "undefined"'] },
+    })
+    expect(negation.isError).toBe(true)
+    expect(negation.text).toContain('否定式条件')
+    // Rejected declarations leave no plan: the next tool call has nothing to verify against.
+    expect((await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })).text).toContain('未声明子任务计划')
+    expect(readCompositionStream(logDir).filter(event => event.type === 'plan')).toHaveLength(0)
+    // A rejected declaration also clears an earlier effective plan.
+    await declarePassingPlan(ctx)
+    expect(readCompositionStream(logDir).filter(event => event.type === 'plan')).toHaveLength(1)
+    const cleared = await runTool(ctx, 'lcrd_plan', {
+      goal: '再拒', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === result'] },
+    })
+    expect(cleared.isError).toBe(true)
+    expect((await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })).text).toContain('未声明子任务计划')
+    expect(readCompositionStream(logDir).filter(event => event.type === 'plan')).toHaveLength(1)
+    // python and llm verifiers skip the JS condition probe.
+    expect((await runTool(ctx, 'lcrd_plan', {
+      goal: 'py', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'python', checks: ['1 == 1'] },
+    })).isError).toBe(false)
+    expect((await runTool(ctx, 'lcrd_plan', {
+      goal: 'llm', stop_condition: 'x', feasibility: true, verifier: { kind: 'llm' },
+    })).isError).toBe(false)
+  })
+
+  it('rejects presence-only assert declarations only when rejectPresenceOnly is on', async () => {
+    const { ctx: off } = await setupLearning({ learningEnabled: false })
+    expect((await runTool(off, 'lcrd_plan', {
+      goal: '存在即可', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result !== undefined'] },
+    })).isError).toBe(false)
+    const { ctx: on } = await setupLearning({ learningEnabled: false, rejectPresenceOnly: true })
+    const rejected = await runTool(on, 'lcrd_plan', {
+      goal: '存在即可', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result !== undefined'] },
+    })
+    expect(rejected.isError).toBe(true)
+    expect(rejected.text).toContain('presence-only')
+    // A literal-pinned condition passes the form gate.
+    expect((await runTool(on, 'lcrd_plan', {
+      goal: '钉住字面量', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === 999'] },
+    })).isError).toBe(false)
+    // python has no JS condition list to probe.
+    expect((await runTool(on, 'lcrd_plan', {
+      goal: 'py', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'python', checks: ['1 == 1'] },
+    })).isError).toBe(false)
+  })
+
+  it('rejects declarations whose probe hold rate meets the configured ceiling', async () => {
+    const { ctx } = await setupLearning({ learningEnabled: false, declarationMaxHoldRate: 0.9 })
+    const weak = await runTool(ctx, 'lcrd_plan', {
+      goal: '弱约束', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result !== undefined'] },
+    })
+    expect(weak.isError).toBe(true)
+    expect(weak.text).toContain('约束过弱')
+    expect(weak.text).toContain('探测通过率')
+    expect((await runTool(ctx, 'lcrd_plan', {
+      goal: '强约束', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === 999'] },
+    })).isError).toBe(false)
+    expect((await runTool(ctx, 'lcrd_plan', {
+      goal: 'py', stop_condition: 'x', feasibility: true,
+      verifier: { kind: 'python', checks: ['1 == 1'] },
+    })).isError).toBe(false)
+  })
+
+  it('rejects an identical redeclaration of the failed plan and clears on a new user command or a pass', async () => {
+    const { ctx, workDir, logDir } = await setupLearning({ learningEnabled: false, maxRetries: 3 })
+    const product = join(workDir, 'f.py')
+    await declareFailingPlan(ctx, 0)
+    await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
+    const repeat = await runTool(ctx, 'lcrd_plan', {
+      goal: '必然失败', stop_condition: '结果等于 999', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === 999'] },
+    })
+    expect(repeat.isError).toBe(true)
+    expect(repeat.text).toContain('原样相同')
+    expect(repeat.text).toContain('禁止原样重试')
+    expect(repeat.text).not.toContain('已终止转人工')
+    // The rejection left no plan: the next tool call has nothing to verify against.
+    expect((await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })).text).toContain('未声明子任务计划')
+    // A different plan still declares.
+    await declareFailingPlan(ctx, 1)
+    // A new user command clears the fingerprint so the old method may return.
+    void ctx.waterfall(agent, 'agent/pre-step', { agent, messages: [createUserMessage({ content: [{ type: 'text' as const, text: '换个方法' }], source: { kind: 'user' as const } })], turn: 1, step: 0, signal: new AbortController().signal }, () => ({ kind: 'allow' } as never))
+    const afterReset = await runTool(ctx, 'lcrd_plan', {
+      goal: '必然失败', stop_condition: '结果等于 999', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === 999'] },
+    })
+    expect(afterReset.isError).toBe(false)
+    // A later pass also clears the fingerprint: declare, fail, then pass a different plan.
+    await runTool(ctx, 'str_replace_editor', { path: product, command: 'create' })
+    await declarePassingPlan(ctx)
+    await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })
+    const afterPass = await runTool(ctx, 'lcrd_plan', {
+      goal: '必然失败', stop_condition: '结果等于 999', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === 999'] },
+    })
+    expect(afterPass.isError).toBe(false)
+    expect(readCompositionStream(logDir).filter(event => event.type === 'plan').length).toBeGreaterThan(0)
+  })
+
+  it('terminates when identical failed redeclarations reach maxRetries', async () => {
+    const { ctx, workDir, logDir } = await setupLearning({ learningEnabled: false, maxRetries: 2 })
+    await declareFailingPlan(ctx, 0)
+    await runTool(ctx, 'str_replace_editor', { path: join(workDir, 'f.py'), command: 'create' })
+    const terminal = await runTool(ctx, 'lcrd_plan', {
+      goal: '必然失败', stop_condition: '结果等于 999', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === 999'] },
+    })
+    expect(terminal.isError).toBe(true)
+    expect(terminal.text).toContain('原样重复')
+    expect(terminal.text).toContain('已终止转人工')
+    expect(readCompositionStream(logDir).some(event => event.type === 'intercept' && event.kind === 'terminated' && (event.detail ?? '').includes('原样重复'))).toBe(true)
+    // Later tools get the generic terminated notice.
+    expect((await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })).text).toContain('任务已终止')
+  })
+
+  it('rejects a replacement plan the declaration gates refuse', async () => {
+    const { ctx, workDir } = await setupLearning({
+      learningEnabled: false,
+      hooksModule: writeHooksModule(`
+export default {
+  checkPlan: () => ({
+    kind: 'modify',
+    plan: {
+      goal: '生效目标',
+      stop_condition: '生效停止条件',
+      feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result === result'] },
+    },
+  }),
+}
+`),
+    })
+    const rejected = await runTool(ctx, 'lcrd_plan', {
+      goal: '声明目标', stop_condition: '声明停止条件', feasibility: true,
+      verifier: { kind: 'assert', conditions: ['result !== undefined'] },
+    })
+    expect(rejected.isError).toBe(true)
+    expect(rejected.text).toContain('engine rejects')
+    expect(rejected.text).toContain('缺少区分度')
+    expect((await runTool(ctx, 'read', { path: join(workDir, 'a.txt') })).text).toContain('未声明子任务计划')
   })
 
   it('rejects an empty verifier list at the declaration, before any plan is recorded', async () => {

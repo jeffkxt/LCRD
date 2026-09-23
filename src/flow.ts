@@ -288,10 +288,10 @@ function clip(text: string, max: number): string {
  * Normalized fingerprint of one declaration: its goal, stop condition, and
  * verifier specification. Two declarations with the same fingerprint retry the
  * same method, which is what the rollback symbol forbids.
- * @param plan - the recorded plan event.
+ * @param plan - a plan event, or a step plan's goal/stop plus its verifier fields.
  * @returns the fingerprint string compared across declarations.
  */
-function planFingerprint(plan: { goal: string; stop: string; verifier: string; verifierSpec?: VerifierSpec }): string {
+export function planFingerprint(plan: { goal: string; stop: string; verifier: string; verifierSpec?: VerifierSpec }): string {
   return [plan.goal.trim(), plan.stop.trim(), JSON.stringify(plan.verifierSpec ?? plan.verifier)].join('\u0000')
 }
 

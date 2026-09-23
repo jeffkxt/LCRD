@@ -43,6 +43,15 @@ export declare function probeHoldRate(expression: string): number | null;
  */
 export declare function probeExpression(expression: string): ConditionProbe;
 /**
+ * The rejection reason for one unbound or tautological condition, shared by
+ * the declaration-time gate and the post-execute verifier so both name the
+ * same cause for the same condition.
+ * @param condition - the model-authored condition the probe rejected.
+ * @param kind - `unbound` when it reads no bound variable, `tautological` when it holds on every probe input.
+ * @returns the model-facing rejection reason.
+ */
+export declare function conditionRejection(condition: string, kind: 'unbound' | 'tautological'): string;
+/**
  * Structured assertions: every condition is a JS expression over
  * `result` (the structured value), `content` (the rendered text), or
  * `isError`; all must hold and none may be trivially true. A failed tool

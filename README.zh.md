@@ -68,6 +68,8 @@ pnpm dsh --profile web --patch ./packages/guard/lcrd/cordis.patch.yml   # 交互
       # workspaceRoot: D:/workspace  # 工作区绝对路径(任务产物落点),默认取 session.header.cwd → 沙箱 workspaceRoot → DSH_CWD → fs 后端工作根
       # fileFlowTools: [str_replace_editor, write, edit]  # 守卫检查的文件工具集,默认极简部署三件套
       # failedCheckConsumesRetry: true  # 断言被引擎判为无效是否消耗任务重试预算,默认 true(关闭则用独立计数限制)
+      # rejectPresenceOnly: false       # 声明期拒绝 presence-only 断言,默认 false
+      # declarationMaxHoldRate: 0.9     # 声明期探测通过率上限 (0,1],默认不启用
       # datasetExport: off             # 任务结束是否自动导出数据集:off(默认)/ run 结束时追加 dataset.jsonl、trainable.jsonl、needs_review.jsonl 与 dpo.jsonl
       # datasetDir: ./dataset          # 数据集目录,默认取 flow 日志目录同级的 dataset/
       # attributionModule: ./domain-attribution.mjs  # 领域归因 bundle 的模块路径/包名,默认用日志启发式分类学
@@ -75,6 +77,8 @@ pnpm dsh --profile web --patch ./packages/guard/lcrd/cordis.patch.yml   # 交互
 ```
 
 重试预算只度量它该度量的东西。默认情况下,声明被引擎否掉(`invalid-condition`、`eval-error`)的一步与"执行了但没满足停止条件"的一步消耗同一份预算,这是既有行为;设 `failedCheckConsumesRetry: false` 后,这类失败改由自己的计数限制(上限同为 `maxRetries`,并以 `invalidChecks` 出现在每条声明的 `context` 里),任务预算就只度量真实步骤结果。用同一批任务跑两种配置即是对照实验。
+
+声明期门禁在计划能够治理任何执行之前就拒绝投机声明。每条 assert 条件必须能编译、引用 `result`/`content`/`isError`,且至少在一个探测输入上为假——与 post-execute 校验器相同的规则,但在 `lcrd_plan` 处检查,因此被拒的声明不会进入事件流或计划表。`rejectPresenceOnly: true` 时声明还必须钉住字面量或读取结构化字段;`declarationMaxHoldRate` 设为 `(0, 1]` 时,声明的最大探测通过率必须低于该上限。插件不判断 `stop_condition` 在语义上是否与校验器表达式一致——该信任边界属于 `checkPlan` 策略 hook,它可对停止条件与检查不一致的声明 `deny` 或 `modify`。校验失败后,原样重申同一失败计划会被拒绝(达到 `maxRetries` 即终止);新的用户命令或之后的一次通过会清除指纹,使合法修订的方法可以返回。
 
 ## 文件化任务流程(fileFlowEnabled)
 
@@ -101,7 +105,7 @@ pnpm dsh --profile web --patch ./packages/guard/lcrd/cordis.patch.yml   # 交互
 
 | kind | 模型提供的参数 | 校验方式 |
 |---|---|---|
-| `assert` | `conditions: string[]` | JS 表达式列表,每条可作用于 `result`(结构化值)/`content`(渲染文本)/`isError`,至少引用其一,不可对所有探测输入恒真,全部为真才通过;工具执行失败直接判 FAIL。**列表不得为空**:`lcrd_plan` 在声明处即拒绝空列表,若空声明仍到达校验器,则按无效检查判 FAIL,而不是放行一切 |
+| `assert` | `conditions: string[]` | JS 表达式列表,每条可作用于 `result`(结构化值)/`content`(渲染文本)/`isError`,至少引用其一,不可对所有探测输入恒真,全部为真才通过。未绑定、无法编译、恒真的条件在 `lcrd_plan` 声明处即被拒绝,永远不会成为生效检查。工具执行失败直接判 FAIL。**列表不得为空**:`lcrd_plan` 在声明处即拒绝空列表,若空声明仍到达校验器,则按无效检查判 FAIL,而不是放行一切 |
 | `python` | `checks: string[]` | Python 表达式列表,由插件固定脚本模板求值(环境注入 `json` 模块),规则同 assert,含「列表不得为空」;超时 kill 判 FAIL |
 | `llm` | 无 | 插件固定提示词(注入根锚协议 + goal/stop_condition)的独立会话,温度 0,非 JSON/非 PASS 一律 FAIL |
 
@@ -128,10 +132,10 @@ pnpm dsh --profile web --patch ./packages/guard/lcrd/cordis.patch.yml   # 交互
 ### 3. 恒真条件攻击(已封堵)
 
 ```
-调用 lcrd_plan(goal='攻击演示', stop_condition='无', feasibility=true, verifier 为 {kind:'assert', conditions:['true']}),然后调用 fs 读取任意文件。预期校验被拒。
+调用 lcrd_plan(goal='攻击演示', stop_condition='无', feasibility=true, verifier 为 {kind:'assert', conditions:['true']}),然后调用 fs 读取任意文件。预期声明被拒。
 ```
 
-预期日志:`verify FAIL` reason 含"必须引用 result"。若写 `result === result` 则 reason 为"缺少区分度"。
+预期日志:`lcrd_plan:` 拒绝,消息含"必须引用 result"。写 `result === result` 则在声明处以"缺少区分度"被拒。
 
 ### 4. Python 校验器
 
@@ -160,7 +164,7 @@ pnpm dsh --profile web --patch ./packages/guard/lcrd/cordis.patch.yml   # 交互
 ### 7. 不可行计划(feasibility=false)
 
 ```
-调用 lcrd_plan(goal='测试', stop_condition='无', feasibility=false, verifier 为 {kind:'assert', conditions:['true']}),然后调用 fs 读取 D:/deepseek/deepseek-harness/package.json。
+调用 lcrd_plan(goal='测试', stop_condition='无', feasibility=false, verifier 为 {kind:'assert', conditions:['result !== undefined']}),然后调用 fs 读取 D:/deepseek/deepseek-harness/package.json。
 ```
 
 预期日志:`[LCRD] infeasible: tool=read blocked`
@@ -261,11 +265,22 @@ pnpm run lcrd:dataset && pnpm run lcrd:dpo   # or export the corpus in two separ
 
 DPO 的 `chosen` 是**构造**的:它把放松前的那套检查装回模型自己的声明,每条样本都在 meta 里标 `"synthetic": true`、`repair` 名称与被反转的轴。`prompt` 是声明之前的模型可见转录(user、assistant 文本、工具调用、工具结果、以及标了 `source=plugin` 的引擎通知),不含系统提示。
 
+### 按任务视图(`lcrd:view`)
+
+共享数据集文件是跨全部任务的单一 append-only 语料。`pnpm run lcrd:view` 把它们投影到 `dataset/by-task/<task_group>/`,每个任务组一个目录、文件名与共享文件相同,消费方无需过滤即可读取单个任务族:
+
+```sh
+pnpm run lcrd:view                                 # default dataset dir → dataset/by-task/
+pnpm run lcrd:view -- --dataset <dir> --out <dir>  # explicit locations
+```
+
+自带 `task_group` 的行(`dataset.jsonl`、`trainable.jsonl`、`needs_review.jsonl`、`runs.jsonl`)直接分组。`relaxations.jsonl`、`anchor-judge.jsonl` 与 `dpo.jsonl`(经 `meta.run_id`)通过「同时携带 `run_id` 与 `task_group` 的行」构成的 run 表回连;run 表中查不到的行落入 `_unknown/` 而非被丢弃,join 缺口因此始终可见。每次运行整树重建 `by-task/`,离开共享文件的组不会残留;共享文件本身只被读取——写入方(`datasetExport`、`lcrd:dataset`、`lcrd:pipeline`)不受影响。组名被净化为单个路径段;会逃出视图的名字(`..`、空串)落入 `_unknown/`。`--out` 等于数据集目录或其祖先时视图拒绝执行,因为重建会删除它所读取的源。
+
 ### 可插拔归因(`attributionModule` / `--attribution`)
 
 默认归因是 `dataset.ts` 里的日志启发式分类学:它把判定的记录原因与异常种类映射为 `FailureClass`、把放松的声明映射为 `RelaxationCause`、把每一行映射为 `Trainability`。专业任务族往往有自己的一套失败词汇——能更准确地命名其任务哪里出错的领域分类器。归因钩子让这类领域可以整体替换分类学,而无需 fork 插件:
 
-```ts
+```js
 // domain-attribution.mjs — default export, or export an object without `default`
 export default {
   classifyFailure(reason, exceptionKind) { /* domain rules */ },
@@ -300,6 +315,8 @@ export default {
 
 - **两个检查点。** `checkPlan` 在声明完成、尚未治理执行之前运行;`checkResult` 在外生校验器产出判定之后运行。两者都可以是 async,并应观察该调用的 `signal`。
 - **替换计划对模型静默。** `lcrd_plan` 的结果仍回显声明内容,而流程产物记录生效计划、校验器运行生效检查。有两条可见后果:校验失败时反馈会引用生效条件;若替换把 `feasibility` 改为 false,会走既有 infeasible 分支并告知模型。必须不暴露自身检查的领域可选用 `llm` 校验器,其固定提示词拥有反馈文本。
+- **替换计划同样要过声明期门禁。** 策略可以改写计划,但条件被引擎拒绝的替换会以 `engine rejects` 响亮失败,hook 无法装入未经检查的检查。
+- **停止条件与校验器的一致性归 hook 判定。** 核心不解析 `stop_condition` 语义;看到停止条件与校验器表达式不一致的 `checkPlan` 可以 `deny` 或 `modify`。
 - **拦截不消耗任务重试预算。** `deny`、`block` 与抛错的 hook 独立计数,以 `maxRetries` 为上限,达到即终止转人工;新的用户命令随其他任务状态一起重置计数。`deny` 还会清除更早的计划,因此被拒绝的声明无法通过沿用上一条计划绕过。
 - **非法的替换计划响亮失败**;抛错的 hook 在上限以内向上传播(模型看到 hook 的错误),达到上限即终止。
 - hook 看到的结果是 LCRD 校验器所见的那一版;更靠后的 `tools/post-execute` 监听器仍可能在接受结果之后对其进行转换。
