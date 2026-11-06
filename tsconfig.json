@@ -27,13 +27,34 @@
       "path": "../../core/session"
     },
     {
+      "path": "../../fs/fs"
+    },
+    {
       "path": "../../llm/llm"
     },
     {
-      "path": "../../runtime-diagnostics/invariants"
+      "path": "../../interaction/user-approval"
     },
     {
-      "path": "../../interaction/user-approval"
+      "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../session/session-projection"
+    },
+    {
+      "path": "../../subprocess/subprocess"
+    },
+    {
+      "path": "../../skill/skill"
+    },
+    {
+      "path": "../../util/atomic-write"
+    },
+    {
+      "path": "../../util/values"
+    },
+    {
+      "path": "../../runtime-diagnostics/invariants"
     }
   ]
 }

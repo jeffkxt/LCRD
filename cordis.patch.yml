@@ -1,10 +1,34 @@
-# The dsh-lcrd patch: LCRD hard-isolation over the harness extension points.
+# The @deepseek-ai/dsh-experimental-lcrd patch: LCRD hard-isolation over the harness extension points.
 # Mounts the root-anchor system-prompt section, the lcrd_plan tool, and the
-# post-execute rollback/termination gate in one plugin row.
+# post-execute rollback/termination gate in one plugin row. Learning mode is
+# enabled here so the shipped profile learns out of the box; every learning
+# field is a validated Config default a later patch layer may override.
+#
+# File-backed task flow (fileFlowEnabled, default false) is intentionally NOT
+# set here: standard deployments keep the plain in-context rollback flow.
+# Minimal deployments without web tools enable it by adding
+#   fileFlowEnabled: true
+# under config — the model then maintains task-flow/<task-slug>/ on disk.
 
 - insert:
   - id: lcrd
-    name: '@deepseek-ai/dsh-lcrd'
+    name: '@deepseek-ai/dsh-experimental-lcrd'
     config:
       interaction: auto
       maxRetries: 10
+      learningEnabled: true
+      learningThreshold: 5
+      # Recommended deployment evidence: paired bootstrap significance on reward
+      # admission. A gate whose noise floor exceeds evolveMinGain refuses to
+      # promote regardless of evolveRequireDetectability.
+      evolveSignificance: bootstrap
+      maxLearningAttempts: 3
+      learningTools:
+        - web_search
+        - read
+        - glob
+        - grep
+        - skill
+        - subagent
+        - web_fetch
+      fileFlowEnabled: false

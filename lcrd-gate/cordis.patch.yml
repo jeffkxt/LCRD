@@ -1,0 +1,10 @@
+# The lcrd-gate bundle patch: freeze the gate's plugin composition over dsh-base.
+# A gate profile lists dsh-base, dsh-headless, and this bundle; generated gate
+# overlays then target `id: lcrd` for the per-run logDir, policy root, budget,
+# and candidate version. A patch replaces the whole config row, so this insert
+# deliberately carries no config: the overlay restates the complete deployment
+# config (see `evolveGateProfile: lcrd-gate`).
+
+- insert:
+    - id: lcrd
+      name: '@deepseek-ai/dsh-experimental-lcrd'

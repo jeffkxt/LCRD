@@ -1,0 +1,1 @@
+{"id":"t-01","anchor":"Read source/package.json in your working directory and write only its name field value to answers/t-01.txt.","fixture":"fixtures/task"}

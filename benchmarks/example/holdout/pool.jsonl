@@ -1,0 +1,10 @@
+{"id":"h-01","anchor":"Read source/package.json in your working directory and write only its name field value to answers/h-01.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-01"}
+{"id":"h-02","anchor":"Read source/index.ts in your working directory and write only the value of the exported `name` constant to answers/h-02.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-02"}
+{"id":"h-03","anchor":"Read source/index.ts in your working directory and write only the value of `configDefaults.maxRetries` to answers/h-03.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-03"}
+{"id":"h-04","anchor":"Read source/anchor.ts in your working directory and write only the value of `PROTOCOL_VERSION` to answers/h-04.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-04"}
+{"id":"h-05","anchor":"Read source/index.ts in your working directory and write only the value of `configDefaults.evolveHoldoutSize` to answers/h-05.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-05"}
+{"id":"h-06","anchor":"Read source/index.ts in your working directory and write only the value of `configDefaults.evolveMaxSkills` to answers/h-06.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-06"}
+{"id":"h-07","anchor":"Read source/index.ts in your working directory and write only the value of `configDefaults.evolveGateMaxWallMs` to answers/h-07.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-07"}
+{"id":"h-08","anchor":"Read source/store.ts in your working directory and write only the value of `POLICY_EVENTS_FILE` to answers/h-08.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-08"}
+{"id":"h-09","anchor":"Read source/static-check.ts in your working directory and write only the id of the rule that catches imperative HTML comments to answers/h-09.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-09"}
+{"id":"h-10","anchor":"Read source/flow.ts in your working directory and write only the value of `RUN_META_FILE` to answers/h-10.txt.","fixture":"fixtures/task","reward":"node reward.mjs h-10"}

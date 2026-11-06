@@ -1,0 +1,1 @@
+{"id":"s-01","anchor":"Read source/holdout.ts in your working directory and write only the value of `BENCHMARK_LAYOUT.hardout` to answers/s-01.txt.","fixture":"fixtures/task","reward":"node reward.mjs s-01"}

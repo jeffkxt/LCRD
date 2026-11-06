@@ -1,0 +1,5 @@
+{
+  "name": "@deepseek-ai/dsh-experimental-lcrd",
+  "description": "Synthetic source for the self-contained LCRD example benchmark.",
+  "private": true
+}

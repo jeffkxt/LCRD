@@ -1,0 +1,1 @@
+{"id":"sum-all-items","anchor":"source/sum.js 的 sum 漏掉最后一项。修复它：返回数组所有数字之和，空数组返回 0。只改这个文件。","fixture":"fixtures/sum-all-items","reward":"node reward.mjs"}

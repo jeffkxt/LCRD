@@ -1,1 +1,5 @@
 /node_modules/@deepseek-ai
+# Run artifacts and their exports are per-machine data, never repository content.
+/lcrd-flow
+/task-flow
+/dataset
