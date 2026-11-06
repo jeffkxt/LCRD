@@ -125,7 +125,7 @@ export {
   writeGateArtifact,
 } from './evolve/store.ts'
 /** Gate and sealed-audit entry points, for offline tooling and deployment tests. */
-export { admittedMetrics, aggregate, decide, renderOverlay, runGate, runTasks } from './evolve/gate.ts'
+export { admittedMetrics, aggregate, decide, prepareWorkspace, renderOverlay, runGate, runReward, runTasks } from './evolve/gate.ts'
 /** The gain report: paired samples, a seeded bootstrap interval, and an explicit verdict. */
 export { bootstrapMeanCI, pairSamples, pairedDeltas, pairedRuns, renderGainReport } from './evolve/report.ts'
 export type { GainReport, GainReportJson, GainVerdict, PairedRun } from './evolve/report.ts'

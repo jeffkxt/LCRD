@@ -1,0 +1,5 @@
+# Local training and evaluation outputs; never commit checkpoints or data.
+data/
+outputs/
+*.safetensors
+*.bin

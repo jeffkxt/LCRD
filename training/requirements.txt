@@ -1,0 +1,9 @@
+# Python dependencies for the offline LCRD weight-training scaffold.
+# These versions are a working baseline, not a promise for every GPU/driver.
+torch>=2.4
+transformers>=4.46
+peft>=0.13
+trl>=0.12,<0.20
+datasets>=3.0
+accelerate>=1.0
+bitsandbytes>=0.44

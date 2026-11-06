@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LCRD 架构详解</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #111a31;
+    --panel-2: #16213d;
+    --text: #dce6ff;
+    --muted: #93a4c8;
+    --line: #26375f;
+    --accent: #6ea8fe;
+    --accent-2: #7ee2b8;
+    --warn: #ffcb6b;
+    --danger: #ff7b72;
+    --code: #08101f;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.75 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  .page { display: grid; grid-template-columns: 280px minmax(0, 1fr); max-width: 1500px; margin: 0 auto; }
+  nav {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow: auto;
+    padding: 28px 18px; background: #080d1a; border-right: 1px solid var(--line);
+  }
+  nav h2 { margin: 0 0 14px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  nav a { display: block; padding: 7px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 13px; }
+  nav a:hover { background: var(--panel); color: var(--text); }
+  nav .sub { padding-left: 22px; font-size: 12px; }
+  main { min-width: 0; padding: 42px 54px 90px; }
+  header.hero { padding-bottom: 26px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+  .eyebrow { color: var(--accent-2); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+  h1 { margin: 8px 0 10px; font-size: 38px; line-height: 1.2; }
+  .lede { color: var(--muted); max-width: 900px; font-size: 16px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .pill { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+  h2 { margin: 48px 0 14px; font-size: 27px; line-height: 1.3; scroll-margin-top: 22px; }
+  h3 { margin: 30px 0 10px; font-size: 20px; color: #cfe0ff; scroll-margin-top: 18px; }
+  h4 { margin: 22px 0 8px; font-size: 16px; color: var(--accent); }
+  p { margin: 10px 0; }
+  a { color: var(--accent); }
+  code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .92em; }
+  p code, li code, td code { background: #0a1428; border: 1px solid #1c2b4d; border-radius: 5px; padding: 1px 5px; }
+  pre {
+    background: var(--code); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; overflow: auto; color: #c7d7ff; line-height: 1.55; font-size: 13px;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: #0d1730; color: #dce6ff; text-align: left; }
+  tr:nth-child(even) td { background: #0d1529; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card b { color: #fff; }
+  .card p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .callout { border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0; }
+  .callout.warn { border-color: var(--warn); }
+  .callout.danger { border-color: var(--danger); }
+  .callout.ok { border-color: var(--accent-2); }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 22px; }
+  .toc-grid a { color: var(--muted); text-decoration: none; }
+  .toc-grid a:hover { color: var(--text); }
+  .diagram { color: #9fc1ff; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .tag { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: 11px; color: var(--muted); }
+  .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  @media (max-width: 980px) {
+    .page { display: block; }
+    nav { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 28px 20px 70px; }
+    h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<nav>
+  <h2>LCRD Docs</h2>
+  <a href="../README.md">← 返回 README</a>
+  <a href="#overview">1. 定位与边界</a>
+  <a href="#layers">2. 分层架构</a>
+  <a href="#lifecycle">3. 请求生命周期</a>
+  <a href="#protocol">4. 运行时协议</a>
+  <a class="sub" href="#verifiers">4.1 校验器</a>
+  <a class="sub" href="#file-flow">4.2 文件式任务流</a>
+  <a href="#evolution">5. 策略演化</a>
+  <a class="sub" href="#gate">5.1 门禁</a>
+  <a class="sub" href="#metrics">5.2 指标与判定</a>
+  <a class="sub" href="#promotion">5.3 审批、监控与审计</a>
+  <a href="#store">6. Store 与账本</a>
+  <a href="#dataset">7. Dataset / DPO</a>
+  <a href="#weight">8. 权重路线</a>
+  <a href="#config">9. 配置与命令</a>
+  <a href="#security">10. 安全与信任边界</a>
+  <a href="#testing">11. 测试与质量门禁</a>
+  <a href="#limits">12. 限制与路线</a>
+  <a href="#filemap">13. 文件地图</a>
+</nav>
+<main>
+<header class="hero">
+  <div class="eyebrow">LCRD · Hard-Isolation · Architecture</div>
+  <h1>LCRD 架构详解</h1>
+  <p class="lede">一句话：LCRD 是一个“外生校验的 agent 任务协议 + 带门禁的提示词策略演化层”。它让模型遵守任务契约，也让 skill 变更有版本、有证据、可回滚；它不是权重 RSI，也不是通用 agent 产品。</p>
+  <div class="meta">
+    <span class="pill">runtime protocol</span>
+    <span class="pill">policy evolution</span>
+    <span class="pill">exogenous verifier</span>
+    <span class="pill">headroom + detectability</span>
+    <span class="pill">no new session events</span>
+    <span class="pill">prompt-level only</span>
+  </div>
+</header>
+
+<section id="overview">
+<h2>1. 定位与边界</h2>
+<p>LCRD 有两层，刻意不混在一起：</p>
+<div class="grid">
+  <div class="card"><b>运行时协议</b><p>控制<strong>一个任务</strong>：根锚、声明计划、外生校验、失败回退、重试上限、终止转人工、可选学习轮。</p></div>
+  <div class="card"><b>策略演化</b><p>控制<strong>后续任务可用哪些 skill</strong>：提案、静态扫描、holdout 门禁、预审、审批、在线监控、hard-out 审计。</p></div>
+  <div class="card"><b>证据与运维</b><p>flow 导出、dataset/DPO、策略账本、被拒提案反馈、通知、运行时 invariant。</p></div>
+</div>
+<div class="callout danger"><strong>非目标</strong>：不改模型权重；不执行 skill 代码；不让模型写校验结果/门禁结果/指针/审批；不新增 session 事件类型。权重路线是独立管线，当前只有 DPO 导出、评测底座、训练脚手架和 checkpoint registry，没有已跑通的训练结果。</div>
+</section>
+
+<section id="layers">
+<h2>2. 分层架构</h2>
+<pre class="diagram"><code>┌──────────────────────────────────────────────────────────────┐
+│                        Harness / Agent Loop                  │
+│  agent/pre-step ──► tools/post-execute ──► turn/end / dispose│
+└───────────────┬───────────────────────────────┬──────────────┘
+                │                               │
+        ┌───────▼────────┐              ┌───────▼──────────┐
+        │ Runtime        │              │ Policy evolution │
+        │ protocol       │              │ (opt-in)         │
+        │                │              │                  │
+        │ anchor         │              │ propose          │
+        │ lcrd_plan      │              │ static scan      │
+        │ verifier       │              │ holdout gate     │
+        │ rollback       │              │ brief / approve  │
+        │ terminate      │              │ promote / monitor│
+        │ learning       │              │ hard-out audit   │
+        └───────┬────────┘              └───────┬──────────┘
+                │                               │
+        ┌───────▼───────────────────────────────▼──────────┐
+        │ Evidence: flow export, dataset.jsonl/dpo.jsonl,  │
+        │ policy-events.jsonl, rejected-edits.jsonl,       │
+        │ quarantine.json, run.json, invariant             │
+        └──────────────────────────────────────────────────┘</code></pre>
+<table>
+  <thead><tr><th>层</th><th>职责</th><th>关键文件</th></tr></thead>
+  <tbody>
+    <tr><td>运行时协议</td><td>根锚注入、计划声明、声明期门禁、post-execute 校验、回退/终止、学习轮</td><td><code>src/anchor.ts</code>, <code>plan-tool.ts</code>, <code>step-verify.ts</code>, <code>verifiers.ts</code>, <code>state.ts</code></td></tr>
+    <tr><td>策略演化</td><td>提案、静态扫描、版本落盘、门禁、预审、promote、在线监控、hard-out</td><td><code>src/evolve/*</code></td></tr>
+    <tr><td>证据</td><td>flow、dataset/DPO、策略账本、拒绝记录、通知、invariant</td><td><code>flow.ts</code>, <code>dataset.ts</code>, <code>notice.ts</code>, <code>invariant.ts</code></td></tr>
+  </tbody>
+</table>
+<div class="callout ok"><strong>核心不变量</strong>：模型只写声明、skill 文本和理由；校验器、门禁、指针、审批结果都由引擎/运维拥有。skill 是数据，不是代码。</div>
+</section>
+
+<section id="lifecycle">
+<h2>3. 请求生命周期</h2>
+<pre class="diagram"><code>user message
+   │
+   ▼
+subscribe root anchor ──► every model request carries protocol section
+   │
+   ▼
+model calls lcrd_plan(goal, stop_condition, feasibility, verifier)
+   │
+   ├─ declaration gate: compile / reference result,content,isError /
+   │  discrimination / presence-only / hold-rate ceiling
+   │        │ reject
+   │        └──► blocked, no retry consumed (or own budget, config)
+   │
+   ▼
+task tool executes
+   │
+   ▼
+verifier (assert | python | llm) evaluates the result
+   │
+   ├─ PASS ──► result accepted; model may continue
+   │
+   └─ FAIL ──► result blocked + reason; retry counter++
+               │
+               ├─ retry budget remains ──► model must re-plan differently
+               │
+               ├─ learningEnabled & threshold reached ──► learning round
+               │     declare → acquire knowledge → self-evaluate → re-solve
+               │
+               └─ budget exhausted ──► terminated for human review</code></pre>
+<p>所有状态迁移在注册的监听器里，而不是提示词里。门禁子进程以 <code>evolveEnabled: false</code> 挂载候选版本，因此测量运行不会产生提案。</p>
+</section>
+
+<section id="protocol">
+<h2>4. 运行时协议</h2>
+<h3>4.1 根锚</h3>
+<p>用户第一条消息是任务契约。根锚文本作为固定 system-prompt 段落注入；模型不能扩张、重定义或静默缩小主任务。根锚内出现矛盾时，模型只能在顶层边界内权衡。</p>
+<h3>4.2 声明</h3>
+<p>任务工具调用前必须调用 <code>lcrd_plan</code>：</p>
+<pre><code>{
+  goal: string,
+  stop_condition: string,
+  feasibility: boolean,
+  verifier: { kind: "assert", conditions: string[] }
+          | { kind: "python", checks: string[] }
+          | { kind: "llm" }
+}</code></pre>
+<p>声明是数据；是否可行、如何校验、是否通过由引擎决定。没有声明就调用任务工具会被阻断。</p>
+<h3>4.3 回退与终止</h3>
+<p>校验失败时结果被拒绝并返回原因；模型必须换一种方法重新声明，禁止原样复用失败计划。连续失败达到 <code>maxRetries</code> 后终止，后续工具调用被拦截，任务转人工。新的真实用户命令重新开启任务边界，重置计划/失败计数/学习预算/终止状态。</p>
+<h3 id="verifiers">4.4 校验器</h3>
+<table>
+  <thead><tr><th>kind</th><th>模型提供</th><th>执行</th></tr></thead>
+  <tbody>
+    <tr><td><code>assert</code></td><td><code>conditions: string[]</code></td><td>受限 JS 表达式，读取 <code>result</code>/<code>content</code>/<code>isError</code>；必须引用其一、不可恒真、全部为真才通过；工具错误直接 FAIL。</td></tr>
+    <tr><td><code>python</code></td><td><code>checks: string[]</code></td><td>固定 Python 模板求值，注入 <code>json</code>；规则同 assert；超时/启动失败判 FAIL。</td></tr>
+    <tr><td><code>llm</code></td><td>无</td><td>独立会话、固定提示词、温度 0；非 JSON / 非 PASS 一律 FAIL；每次多一次 API 调用。</td></tr>
+  </tbody>
+</table>
+<p><code>assert</code> 的表达式语法是 <code>src/expr.ts</code> 的受限子集：比较、布尔、<code>typeof</code>/<code>in</code>、属性读取和白名单只读方法；<code>this</code>、函数构造、正则字面量、动态 import、循环不可表达。校验器不执行模型提供的代码。</p>
+<h3 id="file-flow">4.5 文件式任务流</h3>
+<p><code>fileFlowEnabled</code> 适合只有 bash 与字符串替换编辑器的极简部署：插件创建并固定 <code>taskflow-&lt;uuid&gt;/</code>，模型维护 <code>task.md</code>、<code>subtasks/</code>、<code>progress.md</code>；任务目录只放流程文件，产物写 workspace；越界写入计入 path violation，达到上限终止。标准部署保持关闭，使用纯上下文回退流。</p>
+</section>
+
+<section id="evolution">
+<h2>5. 策略演化</h2>
+<pre class="diagram"><code>propose ──► static scan ──► stage version ──► gate
+                                              │
+              ┌───────────────────────────────┴───────────────┐
+              │ probe candidate mount                          │
+              │ baseline runs ──► headroom check               │
+              │ candidate runs ──► missing-reward check        │
+              │ paired metrics / CI / detectability            │
+              └───────────────────────────────┬───────────────┘
+                                              │
+                     pass? ──► brief ──► approval ──► promote
+                       │                               │
+                       ├─ no-gain / gate-failed ──► rejected-edits
+                       └─ instrument abort ──► gate-aborted report</code></pre>
+<p>演化默认关闭，开启需要 <code>evolveBenchmarkDir</code> 和 <code>@deepseek-ai/dsh-skill</code>。候选的 skill 正文是模型写的文本；静态扫描在版本落盘前拦截注入、身份否定、越权、隐藏文本、伪造框架和 holdout 泄漏。<code>rules+llm</code> 追加一次独立固定提示词扫描。</p>
+<h3>5.1 版本与门禁</h3>
+<p>通过的提案写入不可变 <code>versions/vNNNN/</code>，包含 manifest、父版本、理由、benchmark digest、skill digest。门禁顺序：</p>
+<ol>
+  <li>候选挂载探针：没有 <code>run.json</code> 直接中止，不烧完整预算；探针只验证挂载，不评分。</li>
+  <li>baseline 在抽中的 holdout 子集上运行；每个 run 独立 workspace，fixture 复制进 workspace。</li>
+  <li>baseline 聚合后检查 <code>headroom = 1 - baseline.rewardRate</code>：小于 <code>evolveMinGain</code> 时写 baseline-only report 并以 <code>gate-aborted</code> 返回，<strong>candidate 不启动</strong>。</li>
+  <li>candidate 运行；<code>admission: reward</code> 下任何缺失 reward 都是不完整证据，不静默丢对。</li>
+  <li>配对统计、token/终止/作弊/hook/路径指标、detectability；写 report/gain-report/brief。</li>
+</ol>
+<div class="callout warn"><strong>headroom 与 detectability 不同</strong>：detectability 是样本能分辨的最小增益；headroom 是基准理论最大增益。样本再大，headroom 不足也无法测出 <code>evolveMinGain</code>。</div>
+<h3 id="metrics">5.2 指标与判定</h3>
+<table>
+  <thead><tr><th>指标</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>rewardRate</code></td><td>任务 reward 命令的均值；<code>admission: reward</code> 的唯一准入指标</td></tr>
+    <tr><td><code>passRate</code></td><td>agent 自证通过率，仅诊断，不作 ground truth</td></tr>
+    <tr><td><code>terminatedRate</code></td><td>未达成奖励的终止率；零容忍策略阈值，不是显著性检验</td></tr>
+    <tr><td><code>cheatRate</code></td><td><code>speculative_cheat</code> 松弛 / 计划数；零容忍策略阈值</td></tr>
+    <tr><td><code>hookInterceptions</code>, <code>pathViolations</code></td><td>策略 hook 拦截与文件流路径越界</td></tr>
+    <tr><td><code>tokens</code></td><td>token 花费；相对基线的回退受 <code>evolveMaxTokenRegression</code> 约束</td></tr>
+    <tr><td><code>detectability</code></td><td><code>z * sd(deltas) / sqrt(n)</code>；样本分辨力</td></tr>
+    <tr><td><code>headroom</code></td><td><code>1 - baseline.rewardRate</code>；最大可能增益</td></tr>
+    <tr><td><code>meanDelta</code> / CI</td><td>配对 c baseline/candidate 差值与 bootstrap 区间；verdict 与 gate 决定分离</td></tr>
+  </tbody>
+</table>
+<p>判定结果：<code>gain</code> / <code>no-gain</code> / <code>insufficient-evidence</code>。<code>evolveSignificance</code> 默认 <code>off</code>；<code>bootstrap</code> 额外拒绝区间包含 0 的 reward 增益，并要求 <code>admission: reward</code> + 至少两对样本。<code>evolveRequireDetectability</code> 默认 true：样本无法分辨 <code>evolveMinGain</code> 时拒绝准入。</p>
+<p>报告与 store：<code>report.json</code>（含 <code>outcome</code>、<code>detectability</code>、<code>pairedN</code>）、<code>gain-report.md/json</code>、<code>brief.md/json</code>；baseline-only abort 的 brief 显示 <code>ABORTED — candidate was not run</code>。</p>
+<h3 id="promotion">5.3 审批、监控与审计</h3>
+<ul>
+  <li><code>evolvePromote: approval</code>（默认）询问审批服务，只有 <code>allowed-once</code> promote；<code>auto</code> 只用于 CI。</li>
+  <li>promote/rollback 写 <code>policy-events.jsonl</code>，通过既有 <code>additionalContexts</code> 发通知，<strong>不新增 session 事件类型</strong>。</li>
+  <li>在线监控把已完成 run 折叠到当前版本的分数窗口；首个完整窗口作为该版本基线，后续若 cheat/终止率回退则退回父版本并写 <code>quarantine.json</code>。</li>
+  <li>hard-out 是封存审计，按 <code>evolveHardoutAuditEvery</code> 与父版本在同一批任务上对照；回退会设置 <code>promotionHeld</code>。</li>
+  <li>被拒提案写 <code>rejected-edits.jsonl</code>；下一次提案读取最近记录，反馈是 best-effort。</li>
+</ul>
+</section>
+
+<section id="store">
+<h2>6. Store 与账本</h2>
+<pre><code>&lt;policyDir&gt;/
+  current.json             # active version, revision, history, promotionHeld
+  versions/
+    v0001/                 # immutable policy version
+      manifest.json
+      skills/...
+      gate/&lt;gateId&gt;/
+        report.json
+        gain-report.md
+        gain-report.json
+        brief.md
+        brief.json
+        runs/&lt;side&gt;/&lt;task-repeat&gt;/
+          overlay-*.yml
+          gate-stderr.log
+          workspace/
+  quarantine.json          # online revert records
+  holdout-history.json     # rotating draw history
+  archive.jsonl            # admission ledger
+  policy-events.jsonl      # promote/rollback ledger
+  rejected-edits.jsonl     # negative feedback (bounded read)
+</code></pre>
+<p>策略生命周期只写策略根，不写 session 日志；不加载 LCRD 的构建永远遇不到未知 session 事件。指针 CAS 由 <code>evolve/store.ts</code> 负责；版本目录不可变；门禁报告/预审随版本保留，是审计链。</p>
+</section>
+
+<section id="dataset">
+<h2>7. Dataset 与 DPO</h2>
+<p><code>datasetExport: run</code> 在 run 结束时追加：</p>
+<table>
+  <thead><tr><th>文件</th><th>内容</th></tr></thead>
+  <tbody>
+    <tr><td><code>dataset.jsonl</code></td><td>每个协议事件一行，含 task_group、failureClass、infraFailure、trainability 与记录字段</td></tr>
+    <tr><td><code>relaxations.jsonl</code></td><td>失败后放松检查的声明，含前后表达式、轴、cause、relax_type</td></tr>
+    <tr><td><code>runs.jsonl</code></td><td>run 级元数据：插件/协议/模型/平台/策略版本</td></tr>
+    <tr><td><code>dpo.jsonl</code></td><td><code>prompt/chosen/rejected/meta</code>；chosen 是恢复放松前检查的<strong>合成</strong>侧</td></tr>
+    <tr><td><code>trainable.jsonl</code> / <code>needs_review.jsonl</code></td><td>按 trainability 分流；infra 失败只留在全量流</td></tr>
+  </tbody>
+</table>
+<div class="callout warn"><strong>DPO 的边界</strong>：<code>dpo.jsonl</code> 主要教“不要弱化校验”，不是任务能力提升。要做能力权重路线，需要成功轨迹/奖励数据与独立评测；当前数据量、GPU、open-weight 模型都不在仓库内。</div>
+<p><code>pnpm run lcrd:audit -- --dataset &lt;corpus&gt; --benchmark &lt;dir&gt;</code> 先统计 pair、group、泄漏、trainability、DPO 形状。<code>pnpm run lcrd:dpo</code> 只做 session log 对齐/DPO 导出，不是训练器。</p>
+</section>
+
+<section id="weight">
+<h2>8. 权重路线</h2>
+<div class="grid">
+  <div class="card"><b>P0 数据审计</b><p><code>lcrd:audit</code>：counts、trainability、DPO 形状、task group、benchmark 泄漏；无 GPU。</p></div>
+  <div class="card"><b>P0 评测底座</b><p><code>lcrd:weight-eval</code>：runner 无关的 base/candidate 评测，独立 workspace + reward；不内置模型。</p></div>
+  <div class="card"><b>P1 训练脚手架</b><p><code>training/prepare_dpo.py</code> 按 group 切分；<code>training/train_dpo.py</code> QLoRA DPO；需要 open-weight 模型+GPU。</p></div>
+  <div class="card"><b>P2 checkpoint 控制面</b><p><code>lcrd:checkpoint</code>：不可变 manifest、eval 证据、promote/rollback；与 skill policy store 分离。</p></div>
+</div>
+<p>没有“在线 RSI 训练循环”，没有在 agent 内执行训练，没有 API 模型的权重更新。正确顺序：数据审计 → 训练 → 独立 held-out eval → checkpoint register/promote；任何一步没有证据都不应进入下一步。</p>
+</section>
+
+<section id="config">
+<h2>9. 配置与命令</h2>
+<h3>关键配置</h3>
+<table>
+  <thead><tr><th>键</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td><code>maxRetries</code>, <code>learningEnabled</code>, <code>learningThreshold</code>, <code>maxLearningAttempts</code></td><td>运行时重试、学习模式预算</td></tr>
+    <tr><td><code>interaction</code></td><td><code>auto</code> / <code>auth</code> / <code>manual</code>；auto 用于无人值守</td></tr>
+    <tr><td><code>fileFlowEnabled</code>, <code>fileFlowTools</code>, <code>workspaceRoot</code></td><td>文件式任务流与 workspace 边界</td></tr>
+    <tr><td><code>evolveEnabled</code>, <code>evolveBenchmarkDir</code>, <code>evolvePolicyDir</code></td><td>演化开关、基准、策略根</td></tr>
+    <tr><td><code>evolveGateProfile</code>, <code>evolveGateArgs</code></td><td>门禁子进程 profile/参数；默认 headless 不含 LCRD</td></tr>
+    <tr><td><code>evolveRepeats</code>, <code>evolveHoldoutSize</code>, <code>evolveHoldoutCooldown</code></td><td>门禁样本与轮换</td></tr>
+    <tr><td><code>evolveMinGain</code>, <code>evolveRequireDetectability</code>, <code>evolveSignificance</code>, <code>evolveSignificanceAlpha</code></td><td>增益门槛、分辨力、显著性</td></tr>
+    <tr><td><code>evolveAdmission</code>, <code>evolvePromote</code></td><td>ground truth 准入与审批权威</td></tr>
+    <tr><td><code>evolveMaxTokenRegression</code>, <code>evolveGateMaxTokens</code>, <code>evolveGateMaxWallMs</code></td><td>成本/安全护栏</td></tr>
+    <tr><td><code>datasetExport</code>, <code>datasetDir</code></td><td>run 结束后自动导出 dataset/DPO</td></tr>
+  </tbody>
+</table>
+<h3>常用命令</h3>
+<pre><code># source run
+pnpm dsh --profile headless --patch ./packages/experimental/lcrd/cordis.patch.yml "task"
+
+# frozen gate profile (once)
+dsh plugin --profile lcrd-gate add @deepseek-ai/dsh-base @deepseek-ai/dsh-headless @deepseek-ai/dsh-experimental-lcrd-gate
+
+# policy operations
+pnpm run lcrd:policy -- show
+pnpm run lcrd:policy -- promote v0002
+pnpm run lcrd:policy -- rollback --reason "..."
+pnpm run lcrd:policy -- audit-hardout --benchmark ./benchmark
+pnpm run lcrd:policy -- clear-hold
+
+# evidence / noise
+pnpm run lcrd:policy -- noise --benchmark <dir> --profile lcrd-gate
+pnpm run lcrd:audit -- --dataset <corpus> --benchmark <dir>
+pnpm run lcrd:dpo
+
+# weight route
+pnpm run lcrd:weight-eval -- --benchmark <dir> --base-runner <cmd> --candidate-runner <cmd>
+pnpm run lcrd:checkpoint -- register --id <id> --base <model> --adapter <path> --eval <eval.json>
+pnpm run lcrd:checkpoint -- promote --id <id>
+</code></pre>
+</section>
+
+<section id="security">
+<h2>10. 安全与信任边界</h2>
+<ul>
+  <li><strong>Skill 是数据</strong>：不能写门禁结果/指针/审批；静态扫描是启发式，真正防线是数据化 + 外生校验 + 人工 promote。</li>
+  <li><strong>Benchmark/reward 是运维可信</strong>：reward 以 <code>shell: true</code> 在隔离 workspace 运行；candidate 看不到其他 run 的产物。</li>
+  <li><strong>Holdout/hard-out 隔离</strong>：部署责任；必须在模型可读根之外；插件只校验不在 skill 根内。</li>
+  <li><strong>无新 session 事件</strong>：通知/切换走既有 tool-result/additional-context；策略记录只在 store。</li>
+  <li><strong>无任意代码执行</strong>：<code>assert</code> 是受限表达式；不提供模型可指定的 <code>command</code> 校验器；训练不在 agent 内启动。</li>
+  <li><strong>默认 approval</strong>：统计证据不足时不要 auto；detectability/headroom 先过线。</li>
+</ul>
+</section>
+
+<section id="testing">
+<h2>11. 测试与质量门禁</h2>
+<p>当前包测试覆盖协议、校验器、学习、演化、门禁、store、隔离、dataset、报告、拒绝反馈与脚本底座：</p>
+<pre><code>pnpm exec vitest run packages/experimental/lcrd
+pnpm exec vitest run packages/experimental/lcrd --coverage   # per-file 100%
+pnpm run doc-typecheck
+pnpm exec oxlint .
+pnpm run test:docs
+</code></pre>
+<p>门禁重点：<code>detectability</code> 在噪声地板内；<code>headroom</code> 足够；missing reward 不静默丢对；baseline-only abort 写 report；propose 区分 <code>gate-aborted</code>/<code>gate-failed</code>；rejected-edits 有界；权重 registry 与 skill store 分离。</p>
+</section>
+
+<section id="limits">
+<h2>12. 限制与路线</h2>
+<ul>
+  <li>提示词层上限：skill 只能买来 prompt 能买到的能力；权重是另一条闭环。</li>
+  <li>统计功效：默认 5×3 小样本；显著性默认 off；先跑 noise 再决定。</li>
+  <li>基准饱和：基线过高时 headroom 不足，应该换有失败空间的任务，而不是继续调 skill。</li>
+  <li>缺 reward 的 run 是仪器失败，不是 0 分；先修数据/挂载，再跑门禁。</li>
+  <li>在线 RSI 未实现；权重训练需要 open-weight + GPU；当前只有 scaffold。</li>
+  <li>配置目录生成器在 <code>Config</code> 移到 <code>config.ts</code> 后把 lcrd 归为 library；这是独立文档工具问题。</li>
+</ul>
+</section>
+
+<section id="filemap">
+<h2>13. 文件地图</h2>
+<table>
+  <thead><tr><th>区域</th><th>文件</th></tr></thead>
+  <tbody>
+    <tr><td>协议</td><td><code>src/index.ts</code>, <code>src/wiring.ts</code>, <code>src/config.ts</code>, <code>src/anchor.ts</code>, <code>src/plan-tool.ts</code>, <code>src/step-verify.ts</code>, <code>src/verifiers.ts</code>, <code>src/expr.ts</code></td></tr>
+    <tr><td>运行时状态</td><td><code>src/state.ts</code>, <code>src/step-learn.ts</code>, <code>src/step-terminate.ts</code>, <code>src/learn-tools.ts</code></td></tr>
+    <tr><td>文件流</td><td><code>src/file-flow.ts</code>, <code>src/file-flow-guard.ts</code></td></tr>
+    <tr><td>演化</td><td><code>src/evolve/propose-tool.ts</code>, <code>static-check.ts</code>, <code>holdout.ts</code>, <code>gate.ts</code>, <code>launch.ts</code>, <code>brief.ts</code>, <code>store.ts</code>, <code>monitor.ts</code>, <code>hardout.ts</code>, <code>report.ts</code>, <code>significance.ts</code></td></tr>
+    <tr><td>证据</td><td><code>src/flow.ts</code>, <code>src/dataset.ts</code>, <code>src/notice.ts</code>, <code>src/invariant.ts</code></td></tr>
+    <tr><td>基准</td><td><code>benchmarks/example/</code>, <code>benchmarks/repo-fix/</code></td></tr>
+    <tr><td>运维</td><td><code>scripts/lcrd-policy.ts</code>, <code>lcrd-audit</code>, <code>lcrd-weight-eval</code>, <code>lcrd-checkpoint</code>, <code>lcrd-dpo</code></td></tr>
+    <tr><td>权重脚手架</td><td><code>training/prepare_dpo.py</code>, <code>training/train_dpo.py</code>, <code>training/README.md</code></td></tr>
+  </tbody>
+</table>
+<p class="footer">LCRD architecture reference · prompt-level hard isolation + gated policy evolution · 详细命令与配置以源码和 README 为准。</p>
+</section>
+</main>
+</div>
+</body>
+</html>
