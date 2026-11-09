@@ -3,137 +3,160 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LCRD 架构详解</title>
+<title>LCRD 功能与参数参考手册</title>
 <style>
   :root {
-    --bg: #0b1020;
-    --panel: #111a31;
-    --panel-2: #16213d;
-    --text: #dce6ff;
-    --muted: #93a4c8;
-    --line: #26375f;
-    --accent: #6ea8fe;
-    --accent-2: #7ee2b8;
-    --warn: #ffcb6b;
-    --danger: #ff7b72;
-    --code: #08101f;
+    --bg: #0b1020; --panel: #111a31; --panel-2: #16213d; --text: #dce6ff;
+    --muted: #93a4c8; --line: #26375f; --accent: #6ea8fe; --accent-2: #7ee2b8;
+    --warn: #ffcb6b; --danger: #ff7b72; --code: #08101f;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 15px/1.75 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-  }
-  .page { display: grid; grid-template-columns: 280px minmax(0, 1fr); max-width: 1500px; margin: 0 auto; }
-  nav {
-    position: sticky; top: 0; align-self: start; height: 100vh; overflow: auto;
-    padding: 28px 18px; background: #080d1a; border-right: 1px solid var(--line);
-  }
-  nav h2 { margin: 0 0 14px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  nav a { display: block; padding: 7px 10px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 13px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.75 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; }
+  .page { display: grid; grid-template-columns: 300px minmax(0, 1fr); max-width: 1560px; margin: 0 auto; }
+  nav { position: sticky; top: 0; align-self: start; height: 100vh; overflow: auto; padding: 26px 16px; background: #080d1a; border-right: 1px solid var(--line); }
+  nav h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  nav a { display: block; padding: 5px 9px; border-radius: 7px; color: var(--muted); text-decoration: none; font-size: 12.5px; }
   nav a:hover { background: var(--panel); color: var(--text); }
-  nav .sub { padding-left: 22px; font-size: 12px; }
-  main { min-width: 0; padding: 42px 54px 90px; }
-  header.hero { padding-bottom: 26px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+  nav .sub { padding-left: 21px; font-size: 12px; }
+  nav .group { margin: 14px 0 4px; padding: 0 9px; color: #5f74a5; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; }
+  main { min-width: 0; padding: 40px 52px 100px; }
+  header.hero { padding-bottom: 24px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
   .eyebrow { color: var(--accent-2); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
   h1 { margin: 8px 0 10px; font-size: 38px; line-height: 1.2; }
-  .lede { color: var(--muted); max-width: 900px; font-size: 16px; }
+  .lede { color: var(--muted); max-width: 980px; font-size: 16px; }
   .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
   .pill { border: 1px solid var(--line); background: var(--panel); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
-  h2 { margin: 48px 0 14px; font-size: 27px; line-height: 1.3; scroll-margin-top: 22px; }
-  h3 { margin: 30px 0 10px; font-size: 20px; color: #cfe0ff; scroll-margin-top: 18px; }
-  h4 { margin: 22px 0 8px; font-size: 16px; color: var(--accent); }
+  h2 { margin: 50px 0 14px; font-size: 28px; line-height: 1.3; scroll-margin-top: 22px; }
+  h3 { margin: 32px 0 10px; font-size: 21px; color: #cfe0ff; scroll-margin-top: 18px; }
+  h4 { margin: 24px 0 8px; font-size: 16px; color: var(--accent); }
   p { margin: 10px 0; }
+  ul, ol { margin: 10px 0 14px; padding-left: 24px; }
+  li { margin: 6px 0; }
   a { color: var(--accent); }
   code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .92em; }
-  p code, li code, td code { background: #0a1428; border: 1px solid #1c2b4d; border-radius: 5px; padding: 1px 5px; }
-  pre {
-    background: var(--code); border: 1px solid var(--line); border-radius: 12px;
-    padding: 16px 18px; overflow: auto; color: #c7d7ff; line-height: 1.55; font-size: 13px;
-  }
+  p code, li code, td code, th code { background: #0a1428; border: 1px solid #1c2b4d; border-radius: 5px; padding: 1px 5px; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; overflow: auto; color: #c7d7ff; line-height: 1.55; font-size: 12.5px; }
   pre code { background: none; border: 0; padding: 0; }
-  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 22px; font-size: 13.5px; }
   th, td { border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
   th { background: #0d1730; color: #dce6ff; text-align: left; }
   tr:nth-child(even) td { background: #0d1529; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 16px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 16px 0; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
   .card b { color: #fff; }
-  .card p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  .card p { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; }
   .callout { border-left: 3px solid var(--accent); background: var(--panel); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0; }
   .callout.warn { border-color: var(--warn); }
   .callout.danger { border-color: var(--danger); }
   .callout.ok { border-color: var(--accent-2); }
-  .toc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 22px; }
-  .toc-grid a { color: var(--muted); text-decoration: none; }
-  .toc-grid a:hover { color: var(--text); }
   .diagram { color: #9fc1ff; }
   .muted { color: var(--muted); }
-  .small { font-size: 13px; }
-  .tag { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: 11px; color: var(--muted); }
+  .small { font-size: 12.5px; }
+  .badge { display: inline-block; border-radius: 5px; padding: 1px 6px; font-size: 11px; background: #122447; border: 1px solid #24406e; color: #a9c7ff; }
+  .badge.warn { background: #2b2417; border-color: #5d4a23; color: var(--warn); }
+  .badge.danger { background: #2b1719; border-color: #653035; color: var(--danger); }
+  .badge.ok { background: #132b25; border-color: #2c5a49; color: var(--accent-2); }
+  .param { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+  .param h4 { margin: 0 0 4px; font-size: 15px; }
+  .param .sig { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
+  .param p { margin: 5px 0; }
   .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-  @media (max-width: 980px) {
-    .page { display: block; }
-    nav { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-    main { padding: 28px 20px 70px; }
-    h1 { font-size: 30px; }
-  }
+  @media (max-width: 1080px) { .page { display: block; } nav { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 28px 20px 70px; } h1 { font-size: 30px; } }
 </style>
 </head>
 <body>
 <div class="page">
 <nav>
-  <h2>LCRD Docs</h2>
+  <h2>LCRD 参考手册</h2>
   <a href="../README.md">← 返回 README</a>
-  <a href="#overview">1. 定位与边界</a>
-  <a href="#layers">2. 分层架构</a>
+  <div class="group">概念</div>
+  <a href="#overview">1. 定位、边界与不变量</a>
+  <a href="#layers">2. 分层架构与文件</a>
   <a href="#lifecycle">3. 请求生命周期</a>
-  <a href="#protocol">4. 运行时协议</a>
-  <a class="sub" href="#verifiers">4.1 校验器</a>
-  <a class="sub" href="#file-flow">4.2 文件式任务流</a>
+  <a href="#runtime">4. 运行时协议</a>
+  <a class="sub" href="#anchor">4.1 根锚</a>
+  <a class="sub" href="#plan">4.2 lcrd_plan 与声明期门禁</a>
+  <a class="sub" href="#verifiers">4.3 三种校验器</a>
+  <a class="sub" href="#failure">4.4 失败、回退、终止</a>
+  <a class="sub" href="#learning">4.5 学习模式</a>
+  <a class="sub" href="#file-flow">4.6 文件式任务流</a>
+  <a class="sub" href="#interaction">4.7 交互模式</a>
   <a href="#evolution">5. 策略演化</a>
-  <a class="sub" href="#gate">5.1 门禁</a>
-  <a class="sub" href="#metrics">5.2 指标与判定</a>
-  <a class="sub" href="#promotion">5.3 审批、监控与审计</a>
-  <a href="#store">6. Store 与账本</a>
-  <a href="#dataset">7. Dataset / DPO</a>
-  <a href="#weight">8. 权重路线</a>
-  <a href="#config">9. 配置与命令</a>
-  <a href="#security">10. 安全与信任边界</a>
-  <a href="#testing">11. 测试与质量门禁</a>
-  <a href="#limits">12. 限制与路线</a>
-  <a href="#filemap">13. 文件地图</a>
+  <a class="sub" href="#propose">5.1 提案与静态扫描</a>
+  <a class="sub" href="#gate">5.2 门禁流水线</a>
+  <a class="sub" href="#approval">5.3 审批与 promote</a>
+  <a class="sub" href="#monitor">5.4 在线监控与 hard-out</a>
+  <a class="sub" href="#notices">5.5 通知、账本与拒绝反馈</a>
+  <a href="#gate-internals">6. 门禁指标与判定</a>
+  <a class="sub" href="#sampling">6.1 抽样、隔离与 reward</a>
+  <a class="sub" href="#headroom">6.2 headroom / detectability / 显著性</a>
+  <a class="sub" href="#decision">6.3 决策树与 report 字段</a>
+  <a href="#store">7. 策略 store 与账本</a>
+  <a href="#dataset">8. Dataset / DPO / 归因</a>
+  <a href="#weight">9. 权重路线（P0/P1/P2）</a>
+  <div class="group">参考</div>
+  <a href="#config">10. 全部配置参数</a>
+  <a class="sub" href="#cfg-runtime">10.1 运行时 / 校验器</a>
+  <a class="sub" href="#cfg-learning">10.2 学习模式</a>
+  <a class="sub" href="#cfg-fileflow">10.3 文件式任务流</a>
+  <a class="sub" href="#cfg-dataset">10.4 数据集 / 归因 / hooks</a>
+  <a class="sub" href="#cfg-evolution">10.5 演化核心</a>
+  <a class="sub" href="#cfg-sampling">10.6 门禁抽样与成本</a>
+  <a class="sub" href="#cfg-verdict">10.7 判定与统计</a>
+  <a class="sub" href="#cfg-proposal">10.8 提案与预审</a>
+  <a class="sub" href="#cfg-promotion">10.9 promote 与监控</a>
+  <a href="#cli">11. 全部 CLI 参数</a>
+  <a href="#security">12. 安全与信任边界</a>
+  <a href="#testing">13. 测试与质量门禁</a>
+  <a href="#troubleshooting">14. 常见故障排查</a>
+  <a href="#limits">15. 限制与路线</a>
+  <a href="#filemap">16. 文件地图</a>
 </nav>
 <main>
 <header class="hero">
-  <div class="eyebrow">LCRD · Hard-Isolation · Architecture</div>
-  <h1>LCRD 架构详解</h1>
-  <p class="lede">一句话：LCRD 是一个“外生校验的 agent 任务协议 + 带门禁的提示词策略演化层”。它让模型遵守任务契约，也让 skill 变更有版本、有证据、可回滚；它不是权重 RSI，也不是通用 agent 产品。</p>
+  <div class="eyebrow">LCRD · Hard-Isolation · Full Reference</div>
+  <h1>LCRD 功能与参数参考手册</h1>
+  <p class="lede">这不是一篇导览，而是当前实现的完整说明：运行时协议、校验器、学习模式、文件式任务流、策略演化、门禁统计、store、dataset/DPO、权重路线、全部配置项、全部 CLI 参数、安全边界与排障。所有默认值以 <code>src/config.ts</code> 的 schema 为准。</p>
   <div class="meta">
     <span class="pill">runtime protocol</span>
     <span class="pill">policy evolution</span>
     <span class="pill">exogenous verifier</span>
     <span class="pill">headroom + detectability</span>
+    <span class="pill">gate-aborted / gated-failed</span>
     <span class="pill">no new session events</span>
     <span class="pill">prompt-level only</span>
+    <span class="pill">weight path: scaffold</span>
   </div>
 </header>
 
 <section id="overview">
-<h2>1. 定位与边界</h2>
-<p>LCRD 有两层，刻意不混在一起：</p>
+<h2>1. 定位、边界与不变量</h2>
+<p>LCRD（long-chain reasoning drift）是一个运行在 harness 扩展点上的插件。它有两个独立闭环：</p>
 <div class="grid">
-  <div class="card"><b>运行时协议</b><p>控制<strong>一个任务</strong>：根锚、声明计划、外生校验、失败回退、重试上限、终止转人工、可选学习轮。</p></div>
-  <div class="card"><b>策略演化</b><p>控制<strong>后续任务可用哪些 skill</strong>：提案、静态扫描、holdout 门禁、预审、审批、在线监控、hard-out 审计。</p></div>
-  <div class="card"><b>证据与运维</b><p>flow 导出、dataset/DPO、策略账本、被拒提案反馈、通知、运行时 invariant。</p></div>
+  <div class="card"><b>运行时协议</b><p>控制<strong>一个任务</strong>：根锚、声明计划、外生校验、失败回退、重试上限、终止转人工、可选学习轮、文件式任务流。</p></div>
+  <div class="card"><b>策略演化</b><p>控制<strong>后续任务可用哪些 skill</strong>：提案、静态扫描、不可变版本、holdout 门禁、预审、审批、在线监控、hard-out 审计。</p></div>
+  <div class="card"><b>证据与运维</b><p>flow 导出、dataset/DPO、策略账本、拒绝反馈、通知、invariant、权重路线脚手架。</p></div>
 </div>
-<div class="callout danger"><strong>非目标</strong>：不改模型权重；不执行 skill 代码；不让模型写校验结果/门禁结果/指针/审批；不新增 session 事件类型。权重路线是独立管线，当前只有 DPO 导出、评测底座、训练脚手架和 checkpoint registry，没有已跑通的训练结果。</div>
+<h3>1.1 核心不变量</h3>
+<ul>
+  <li>模型只写声明、skill 文本、rationale 和校验表达式；它不写校验判定、门禁结果、策略指针或审批结果。</li>
+  <li>skill 是<strong>数据</strong>，不是可执行代码；静态扫描只做启发式过滤，真正防线是外生校验、数据化与人工 promote。</li>
+  <li>promote 是一次指针 CAS + skill 注册集替换；下一个任务重新读取 <code>current.json</code>。</li>
+  <li>策略生命周期只写策略根目录，<strong>不新增 session 事件类型</strong>；不加载 LCRD 的构建不会遇到未知事件。</li>
+  <li>运行时与演化都靠注册的监听器执行，不靠提示词自律；门禁子进程加载候选时关闭演化，测量运行不能发起提案。</li>
+</ul>
+<h3>1.2 明确的非目标</h3>
+<ul>
+  <li>不改模型权重；不训练 API 模型；不执行 skill 中的任意代码。</li>
+  <li>不替代通用 agent 产品；它是一层协议/门禁/审计插件。</li>
+  <li>不保证 prompt skill 一定带来增益；它只保证“不经过证据不得 promote”。</li>
+  <li>不提供模型可指定的 <code>command</code> 校验器；<code>assert</code> 是受限表达式，<code>python</code> 是固定模板。</li>
+</ul>
 </section>
 
 <section id="layers">
-<h2>2. 分层架构</h2>
+<h2>2. 分层架构与文件</h2>
 <pre class="diagram"><code>┌──────────────────────────────────────────────────────────────┐
 │                        Harness / Agent Loop                  │
 │  agent/pre-step ──► tools/post-execute ──► turn/end / dispose│
@@ -152,19 +175,21 @@
         └───────┬────────┘              └───────┬──────────┘
                 │                               │
         ┌───────▼───────────────────────────────▼──────────┐
-        │ Evidence: flow export, dataset.jsonl/dpo.jsonl,  │
-        │ policy-events.jsonl, rejected-edits.jsonl,       │
-        │ quarantine.json, run.json, invariant             │
+        │ Evidence: flow export, dataset/DPO, policy ledger│
+        │ rejected-edits, quarantine, run.json, invariant  │
         └──────────────────────────────────────────────────┘</code></pre>
 <table>
-  <thead><tr><th>层</th><th>职责</th><th>关键文件</th></tr></thead>
+  <thead><tr><th>层</th><th>职责</th><th>关键实现</th></tr></thead>
   <tbody>
-    <tr><td>运行时协议</td><td>根锚注入、计划声明、声明期门禁、post-execute 校验、回退/终止、学习轮</td><td><code>src/anchor.ts</code>, <code>plan-tool.ts</code>, <code>step-verify.ts</code>, <code>verifiers.ts</code>, <code>state.ts</code></td></tr>
-    <tr><td>策略演化</td><td>提案、静态扫描、版本落盘、门禁、预审、promote、在线监控、hard-out</td><td><code>src/evolve/*</code></td></tr>
-    <tr><td>证据</td><td>flow、dataset/DPO、策略账本、拒绝记录、通知、invariant</td><td><code>flow.ts</code>, <code>dataset.ts</code>, <code>notice.ts</code>, <code>invariant.ts</code></td></tr>
+    <tr><td>协议/接线</td><td>插件入口、配置、根锚、计划工具、post-execute 校验</td><td><code>src/index.ts</code>, <code>wiring.ts</code>, <code>config.ts</code>, <code>anchor.ts</code>, <code>plan-tool.ts</code>, <code>step-verify.ts</code></td></tr>
+    <tr><td>状态</td><td>重试计数、学习轮、终止、每 agent 状态</td><td><code>src/state.ts</code>, <code>step-learn.ts</code>, <code>step-terminate.ts</code>, <code>learn-tools.ts</code></td></tr>
+    <tr><td>校验</td><td>受限表达式、Python 模板、LLM 独立会话</td><td><code>src/expr.ts</code>, <code>verifiers.ts</code></td></tr>
+    <tr><td>文件流</td><td>taskflow 目录、流程文件、路径护栏</td><td><code>src/file-flow.ts</code>, <code>file-flow-guard.ts</code></td></tr>
+    <tr><td>演化</td><td>提案、静态扫描、holdout、门禁、预审、store、监控、hard-out</td><td><code>src/evolve/*</code></td></tr>
+    <tr><td>证据</td><td>flow、dataset/DPO、通知、invariant</td><td><code>src/flow.ts</code>, <code>dataset.ts</code>, <code>notice.ts</code>, <code>invariant.ts</code></td></tr>
+    <tr><td>运维</td><td>policy CLI、audit、weight eval、checkpoint、训练脚手架</td><td><code>scripts/lcrd-*</code>, <code>training/*</code></td></tr>
   </tbody>
 </table>
-<div class="callout ok"><strong>核心不变量</strong>：模型只写声明、skill 文本和理由；校验器、门禁、指针、审批结果都由引擎/运维拥有。skill 是数据，不是代码。</div>
 </section>
 
 <section id="lifecycle">
@@ -172,125 +197,224 @@
 <pre class="diagram"><code>user message
    │
    ▼
-subscribe root anchor ──► every model request carries protocol section
+root anchor pinned ──► protocol section appears before the first tool call
    │
    ▼
 model calls lcrd_plan(goal, stop_condition, feasibility, verifier)
    │
-   ├─ declaration gate: compile / reference result,content,isError /
-   │  discrimination / presence-only / hold-rate ceiling
-   │        │ reject
-   │        └──► blocked, no retry consumed (or own budget, config)
+   ├─ declaration gates
+   │  ├─ expression compiles and references result/content/isError
+   │  ├─ expression is not tautological on probe inputs
+   │  ├─ optional presence-only rejection
+   │  └─ optional max hold-rate ceiling
+   │        └─ reject: no tool runs; retry/invalid-check accounting per config
    │
    ▼
-task tool executes
+task tool executes (read/write/bash/…)
    │
    ▼
-verifier (assert | python | llm) evaluates the result
+post-execute verifier: assert | python | llm
    │
-   ├─ PASS ──► result accepted; model may continue
+   ├─ PASS ──► result accepted; model continues
    │
-   └─ FAIL ──► result blocked + reason; retry counter++
-               │
-               ├─ retry budget remains ──► model must re-plan differently
-               │
-               ├─ learningEnabled & threshold reached ──► learning round
-               │     declare → acquire knowledge → self-evaluate → re-solve
-               │
+   └─ FAIL ──► result blocked + reason
+               ├─ task retry budget remains ──► must re-plan with a different method
+               ├─ learningEnabled and threshold reached ──► learning round
                └─ budget exhausted ──► terminated for human review</code></pre>
-<p>所有状态迁移在注册的监听器里，而不是提示词里。门禁子进程以 <code>evolveEnabled: false</code> 挂载候选版本，因此测量运行不会产生提案。</p>
+<p>新的真实用户消息是新的任务边界：计划、失败计数、学习预算、终止状态全部重置。插件注入的 notice 不重置边界。</p>
 </section>
 
-<section id="protocol">
+<section id="runtime">
 <h2>4. 运行时协议</h2>
-<h3>4.1 根锚</h3>
-<p>用户第一条消息是任务契约。根锚文本作为固定 system-prompt 段落注入；模型不能扩张、重定义或静默缩小主任务。根锚内出现矛盾时，模型只能在顶层边界内权衡。</p>
-<h3>4.2 声明</h3>
-<p>任务工具调用前必须调用 <code>lcrd_plan</code>：</p>
-<pre><code>{
+<h3 id="anchor">4.1 根锚</h3>
+<p>用户第一条消息是主任务契约（根锚）。根锚文本作为固定 system-prompt 段落注入，包含全部约束（预算、时间、合规等）。模型无权扩张或重定义主任务；主任务未明确要求的操作视为越界。根锚内部有矛盾时，模型只能在顶层边界内权衡，任何输出不得违背约束。</p>
+<h3 id="plan">4.2 lcrd_plan 与声明期门禁</h3>
+<pre><code>lcrd_plan({
   goal: string,
   stop_condition: string,
   feasibility: boolean,
-  verifier: { kind: "assert", conditions: string[] }
-          | { kind: "python", checks: string[] }
-          | { kind: "llm" }
-}</code></pre>
-<p>声明是数据；是否可行、如何校验、是否通过由引擎决定。没有声明就调用任务工具会被阻断。</p>
-<h3>4.3 回退与终止</h3>
-<p>校验失败时结果被拒绝并返回原因；模型必须换一种方法重新声明，禁止原样复用失败计划。连续失败达到 <code>maxRetries</code> 后终止，后续工具调用被拦截，任务转人工。新的真实用户命令重新开启任务边界，重置计划/失败计数/学习预算/终止状态。</p>
-<h3 id="verifiers">4.4 校验器</h3>
+  verifier:
+    | { kind: "assert", conditions: string[] }
+    | { kind: "python", checks: string[] }
+    | { kind: "llm" }
+})</code></pre>
+<ul>
+  <li><strong>先声明后行动</strong>：任务工具调用前必须有当前计划；没有计划的任务工具会被阻断。</li>
+  <li><strong>条件必须可编译并引用</strong> <code>result</code>/<code>content</code>/<code>isError</code> 至少之一；空列表在声明期被拒，到达校验器也判 FAIL。</li>
+  <li><strong>区分度</strong>：条件不能在全部探测输入上恒真；恒真/未绑定/无法编译在声明期被拒，不会成为生效检查。</li>
+  <li><strong>presence-only</strong>（可选）：只断言存在/类型/非空、不钉字面量也不读结构化字段的声明会被拒绝。</li>
+  <li><strong>hold-rate 上限</strong>（可选）：声明在探测矩阵上的最大通过率不得达到 <code>declarationMaxHoldRate</code>。</li>
+  <li><strong>重复失败计划</strong>：校验失败后原样重申同一计划会被拒绝；新的用户命令或后续一次通过会清除指纹。</li>
+  <li><strong>stop_condition 语义</strong>：核心不解析它与校验器是否一致；这属于 <code>checkPlan</code> hook 的判断。</li>
+</ul>
+<h3 id="verifiers">4.3 三种校验器</h3>
 <table>
-  <thead><tr><th>kind</th><th>模型提供</th><th>执行</th></tr></thead>
+  <thead><tr><th>kind</th><th>模型提供</th><th>执行与判定</th><th>成本/风险</th></tr></thead>
   <tbody>
-    <tr><td><code>assert</code></td><td><code>conditions: string[]</code></td><td>受限 JS 表达式，读取 <code>result</code>/<code>content</code>/<code>isError</code>；必须引用其一、不可恒真、全部为真才通过；工具错误直接 FAIL。</td></tr>
-    <tr><td><code>python</code></td><td><code>checks: string[]</code></td><td>固定 Python 模板求值，注入 <code>json</code>；规则同 assert；超时/启动失败判 FAIL。</td></tr>
-    <tr><td><code>llm</code></td><td>无</td><td>独立会话、固定提示词、温度 0；非 JSON / 非 PASS 一律 FAIL；每次多一次 API 调用。</td></tr>
+    <tr><td><code>assert</code></td><td><code>conditions: string[]</code></td><td>受限 JS 表达式读取 <code>result</code>/<code>content</code>/<code>isError</code>；全部为真才 PASS；工具执行失败直接 FAIL。</td><td>无额外 API；语法受限，不能执行任意代码。</td></tr>
+    <tr><td><code>python</code></td><td><code>checks: string[]</code></td><td>插件固定 Python 模板执行表达式，注入 <code>json</code>；规则同 assert；超时或无法启动判 FAIL。</td><td>需要系统 <code>python</code>；每次启动解释器。</td></tr>
+    <tr><td><code>llm</code></td><td>无</td><td>独立会话 + 固定提示词（根锚 + goal/stop_condition）+ 温度 0；非 JSON 或非 PASS 一律 FAIL。</td><td>每次多一次独立 API 调用；隔离靠会话/提示词，不靠跨账号。</td></tr>
   </tbody>
 </table>
-<p><code>assert</code> 的表达式语法是 <code>src/expr.ts</code> 的受限子集：比较、布尔、<code>typeof</code>/<code>in</code>、属性读取和白名单只读方法；<code>this</code>、函数构造、正则字面量、动态 import、循环不可表达。校验器不执行模型提供的代码。</p>
-<h3 id="file-flow">4.5 文件式任务流</h3>
-<p><code>fileFlowEnabled</code> 适合只有 bash 与字符串替换编辑器的极简部署：插件创建并固定 <code>taskflow-&lt;uuid&gt;/</code>，模型维护 <code>task.md</code>、<code>subtasks/</code>、<code>progress.md</code>；任务目录只放流程文件，产物写 workspace；越界写入计入 path violation，达到上限终止。标准部署保持关闭，使用纯上下文回退流。</p>
+<p><strong>assert 的表达式语法</strong>：比较、布尔逻辑、<code>typeof</code>/<code>in</code>、属性读取、白名单只读检查方法。不可表达 <code>this</code>、函数构造、正则字面量、动态 import、循环；因此条件不能触达宿主进程或阻塞事件循环。失败原因会带实际类型/改写提示。</p>
+<h3 id="failure">4.4 失败、回退、终止</h3>
+<ul>
+  <li>校验失败：结果被阻断，模型看到失败原因；同一计划不能原样重试，必须换方法。</li>
+  <li><code>maxRetries</code>：连续失败达到上限后终止，后续工具调用（包括 <code>lcrd_plan</code>）被拦截，任务转人工。</li>
+  <li><code>failedCheckConsumesRetry: false</code>：引擎拒绝模型检查（<code>invalid-condition</code>/<code>eval-error</code>）改由自己的 <code>invalidChecks</code> 计数限制，任务预算只度量真实步骤结果。</li>
+  <li>hook 的 <code>deny</code>/<code>block</code>/抛错独立计数，同样以 <code>maxRetries</code> 为上限；<code>deny</code> 清除旧计划，防止沿用绕过。</li>
+  <li>终止是安全边界，不是统计结论；<code>2 vs 0</code> 的终止差可以是策略拒绝理由，同时 Fisher 精确检验不显著。</li>
+</ul>
+<h3 id="learning">4.5 学习模式</h3>
+<p><code>learningEnabled</code> 开启后，连续校验失败达到 <code>learningThreshold</code> 时暂停直接重试，进入最多 <code>maxLearningAttempts</code> 轮的学习：</p>
+<ol>
+  <li><strong>声明</strong>：<code>lcrd_learn</code> 给出问题分析、所需知识、学习方法、自评标准。</li>
+  <li><strong>获取知识</strong>：只有 <code>learningTools</code> 白名单工具放行；任务工具与 <code>lcrd_plan</code> 在学习阶段被拦截。每个工具调用登记为可引用证据（路径/URL、摘要、片段，编号 e1…e20）。</li>
+  <li><strong>自评</strong>：<code>lcrd_learn_verify</code>；没有学习工具调用或没有引用证据的通过判定会被拒绝且不消耗轮次；自评失败消耗一轮。</li>
+  <li><strong>重解</strong>：自评通过后重新 <code>lcrd_plan</code> 并执行；结果仍走外生校验。通过则任务完成并重置学习预算；失败消耗一轮并回到学习模式。</li>
+</ol>
+<p>学习只影响当前上下文，不持久化、不跨会话复用。学习期间 <code>maxRetries</code> 终止被挂起，由学习轮预算管辖；关闭学习后回到旧的连续失败终止行为。注意：如果 <code>learningThreshold</code> 大于 <code>maxRetries</code>，普通重试可能先终止。</p>
+<h3 id="file-flow">4.6 文件式任务流（fileFlowEnabled）</h3>
+<p>适用于只有 bash 与字符串替换编辑器的极简部署。开启后：</p>
+<ul>
+  <li>插件创建并固定 <code>&lt;task-flow root&gt;/taskflow-&lt;uuid&gt;/</code>，目录名与 flow 日志目录刻意不同；模型不创建、不命名它。</li>
+  <li>目录初始为空；模型必须创建 <code>task.md</code>、<code>subtasks/</code>、<code>progress.md</code>。读取日志/目录不能代替创建。</li>
+  <li>任务目录只放流程文件；任务产物（脚本/代码/数据）必须写 workspace，写入任务目录会被引导性拒绝。</li>
+  <li><code>task-flow/</code> 内的路径必须停在当前任务目录；读写其他任务目录/裸根会被拒绝并计数，达到 <code>fileFlowPathViolationsMax</code> 终止为严重幻觉。</li>
+  <li>受守卫的是 <code>fileFlowTools</code> 的写入操作；读操作放行；shell 命令路径目前不检查。</li>
+  <li><code>workspaceRoot</code> 注入协议文本；回退顺序：session cwd → sandbox workspaceRoot → <code>DSH_CWD</code> → fs backend 工作根。部署工作区不同请显式设置。</li>
+  <li>协议段要求模型执行 shell 前先 <code>cd</code> 到 workspace。</li>
+</ul>
+<h3 id="interaction">4.7 交互模式</h3>
+<table>
+  <thead><tr><th>值</th><th>审批</th><th>ask_user_question</th><th>适用</th></tr></thead>
+  <tbody>
+    <tr><td><code>auto</code></td><td>自动拒绝（审批策略 never）</td><td>自动返回“请自主判断”</td><td>评测、CI、批处理；无人值守</td></tr>
+    <tr><td><code>auth</code></td><td>交给人工 answerer</td><td>保持交互</td><td>半自动，需要人工放行</td></tr>
+    <tr><td><code>manual</code>（默认）</td><td>交给 UI answerer</td><td>保持交互</td><td>交互式使用</td></tr>
+  </tbody>
+</table>
+<p><code>interaction: auto</code> 下演化只能提案不能 promote；promote 仍受 <code>evolvePromote: approval</code> 的模式支配。</p>
 </section>
 
 <section id="evolution">
 <h2>5. 策略演化</h2>
-<pre class="diagram"><code>propose ──► static scan ──► stage version ──► gate
-                                              │
-              ┌───────────────────────────────┴───────────────┐
-              │ probe candidate mount                          │
-              │ baseline runs ──► headroom check               │
-              │ candidate runs ──► missing-reward check        │
-              │ paired metrics / CI / detectability            │
-              └───────────────────────────────┬───────────────┘
-                                              │
-                     pass? ──► brief ──► approval ──► promote
-                       │                               │
-                       ├─ no-gain / gate-failed ──► rejected-edits
-                       └─ instrument abort ──► gate-aborted report</code></pre>
-<p>演化默认关闭，开启需要 <code>evolveBenchmarkDir</code> 和 <code>@deepseek-ai/dsh-skill</code>。候选的 skill 正文是模型写的文本；静态扫描在版本落盘前拦截注入、身份否定、越权、隐藏文本、伪造框架和 holdout 泄漏。<code>rules+llm</code> 追加一次独立固定提示词扫描。</p>
-<h3>5.1 版本与门禁</h3>
-<p>通过的提案写入不可变 <code>versions/vNNNN/</code>，包含 manifest、父版本、理由、benchmark digest、skill digest。门禁顺序：</p>
-<ol>
-  <li>候选挂载探针：没有 <code>run.json</code> 直接中止，不烧完整预算；探针只验证挂载，不评分。</li>
-  <li>baseline 在抽中的 holdout 子集上运行；每个 run 独立 workspace，fixture 复制进 workspace。</li>
-  <li>baseline 聚合后检查 <code>headroom = 1 - baseline.rewardRate</code>：小于 <code>evolveMinGain</code> 时写 baseline-only report 并以 <code>gate-aborted</code> 返回，<strong>candidate 不启动</strong>。</li>
-  <li>candidate 运行；<code>admission: reward</code> 下任何缺失 reward 都是不完整证据，不静默丢对。</li>
-  <li>配对统计、token/终止/作弊/hook/路径指标、detectability；写 report/gain-report/brief。</li>
-</ol>
-<div class="callout warn"><strong>headroom 与 detectability 不同</strong>：detectability 是样本能分辨的最小增益；headroom 是基准理论最大增益。样本再大，headroom 不足也无法测出 <code>evolveMinGain</code>。</div>
-<h3 id="metrics">5.2 指标与判定</h3>
-<table>
-  <thead><tr><th>指标</th><th>含义</th></tr></thead>
-  <tbody>
-    <tr><td><code>rewardRate</code></td><td>任务 reward 命令的均值；<code>admission: reward</code> 的唯一准入指标</td></tr>
-    <tr><td><code>passRate</code></td><td>agent 自证通过率，仅诊断，不作 ground truth</td></tr>
-    <tr><td><code>terminatedRate</code></td><td>未达成奖励的终止率；零容忍策略阈值，不是显著性检验</td></tr>
-    <tr><td><code>cheatRate</code></td><td><code>speculative_cheat</code> 松弛 / 计划数；零容忍策略阈值</td></tr>
-    <tr><td><code>hookInterceptions</code>, <code>pathViolations</code></td><td>策略 hook 拦截与文件流路径越界</td></tr>
-    <tr><td><code>tokens</code></td><td>token 花费；相对基线的回退受 <code>evolveMaxTokenRegression</code> 约束</td></tr>
-    <tr><td><code>detectability</code></td><td><code>z * sd(deltas) / sqrt(n)</code>；样本分辨力</td></tr>
-    <tr><td><code>headroom</code></td><td><code>1 - baseline.rewardRate</code>；最大可能增益</td></tr>
-    <tr><td><code>meanDelta</code> / CI</td><td>配对 c baseline/candidate 差值与 bootstrap 区间；verdict 与 gate 决定分离</td></tr>
-  </tbody>
-</table>
-<p>判定结果：<code>gain</code> / <code>no-gain</code> / <code>insufficient-evidence</code>。<code>evolveSignificance</code> 默认 <code>off</code>；<code>bootstrap</code> 额外拒绝区间包含 0 的 reward 增益，并要求 <code>admission: reward</code> + 至少两对样本。<code>evolveRequireDetectability</code> 默认 true：样本无法分辨 <code>evolveMinGain</code> 时拒绝准入。</p>
-<p>报告与 store：<code>report.json</code>（含 <code>outcome</code>、<code>detectability</code>、<code>pairedN</code>）、<code>gain-report.md/json</code>、<code>brief.md/json</code>；baseline-only abort 的 brief 显示 <code>ABORTED — candidate was not run</code>。</p>
-<h3 id="promotion">5.3 审批、监控与审计</h3>
+<p>演化默认关闭。开启条件：<code>evolveEnabled: true</code>、<code>evolveBenchmarkDir</code> 存在、组合 <code>@deepseek-ai/dsh-skill</code>。关闭时插件完全是普通协议：无候选挂载、无 policy store 访问、无提案工具、无在线监控。</p>
+<pre class="diagram"><code>propose ──► static scan ──► stage immutable version ──► gate
+                                                        │
+                  ┌─────────────────────────────────────┴─────────────┐
+                  │ probe candidate mount                            │
+                  │ baseline runs ──► missing reward? ──► abort      │
+                  │ baseline rate ──► headroom < minGain? ──► abort  │
+                  │ candidate runs ──► missing reward? ──► abort     │
+                  │ paired metrics / CI / detectability / token      │
+                  └─────────────────────────────────────┬─────────────┘
+                                                        │
+                         pass? ──► brief ──► approval ──► promote
+                           │                                 │
+                           ├─ gate-failed ──► rejected-edits  │
+                           └─ gate-aborted ──► baseline report│
+                                                             ▼
+                                                   monitor / hard-out</code></pre>
+<h3 id="propose">5.1 提案与静态扫描</h3>
 <ul>
-  <li><code>evolvePromote: approval</code>（默认）询问审批服务，只有 <code>allowed-once</code> promote；<code>auto</code> 只用于 CI。</li>
-  <li>promote/rollback 写 <code>policy-events.jsonl</code>，通过既有 <code>additionalContexts</code> 发通知，<strong>不新增 session 事件类型</strong>。</li>
-  <li>在线监控把已完成 run 折叠到当前版本的分数窗口；首个完整窗口作为该版本基线，后续若 cheat/终止率回退则退回父版本并写 <code>quarantine.json</code>。</li>
-  <li>hard-out 是封存审计，按 <code>evolveHardoutAuditEvery</code> 与父版本在同一批任务上对照；回退会设置 <code>promotionHeld</code>。</li>
-  <li>被拒提案写 <code>rejected-edits.jsonl</code>；下一次提案读取最近记录，反馈是 best-effort。</li>
+  <li><code>lcrd_propose</code> 参数：<code>rationale</code>、<code>parent_version</code>、<code>skills[]</code>（name/description/content）。</li>
+  <li><code>parent_version</code> 必须来自引擎给出的候选集（当前版本恒在候选内）；只有 promoted 版本可作为基线。</li>
+  <li>每次任务边界最多 <code>evolveMaxProposals</code> 个提案；一个提案最多 <code>evolveMaxSkills</code> 个 skill，每个正文最多 <code>evolveSkillMaxBytes</code>，rationale 截断到 <code>evolveRationaleMax</code>。</li>
+  <li>静态扫描（在版本落盘之前）：注入措辞、身份否定、越权（跳过校验器/重定义根锚/改预算/调用提案）、隐藏文本（零宽、bidi、编码块、指令 HTML 注释）、伪造框架标签、holdout/hard-out 泄漏。</li>
+  <li><code>evolveStaticScan: rules+llm</code> 追加一次固定提示词模型扫描；输出不可用按 block 处理。<code>evolveScanModel</code> 应独立于提案模型。</li>
+  <li>静态拒绝写 <code>rejected-edits.jsonl</code> stage <code>static-scan</code>，版本目录不创建。</li>
+</ul>
+<h3 id="gate">5.2 门禁流水线</h3>
+<ol>
+  <li><strong>Stage</strong>：不可变 <code>versions/vNNNN/</code>，manifest 记录 parent、rationale、benchmark digest、skill digests、status <code>proposed</code>。</li>
+  <li><strong>Probe</strong>：候选挂载一次，只验证 child 产出 <code>run.json</code>；不评分、不执行 reward。失败直接配置错误中止。</li>
+  <li><strong>Baseline</strong>：在抽中的 holdout 子集上运行当前版本；每 run 独立 workspace，fixture 复制；reward 在 workspace 内。</li>
+  <li><strong>Headroom</strong>：baseline 聚合后 <code>headroom = 1 - rewardRate</code>；<code>headroom &lt; evolveMinGain</code> 写 baseline-only report，<code>outcome: gate-aborted</code>，<strong>candidate 不启动</strong>。</li>
+  <li><strong>Candidate</strong>：运行候选；任何缺失 reward 都是不完整证据，baseline 缺失在 candidate 前中止，candidate 缺失写完整中止 report。</li>
+  <li><strong>Metrics</strong>：配对 delta、bootstrap CI、detectability、token、终止、cheat、hook、path。</li>
+  <li><strong>Reports</strong>：<code>report.json</code>（outcome/detectability/pairedN）、<code>gain-report.md/json</code>、<code>brief.md/json</code>。</li>
+</ol>
+<p>候选必须同时满足：增益 ≥ <code>evolveMinGain</code>；终止率回退 ≤ <code>evolveMaxSafetyRegression</code>；cheat 回退 ≤ <code>evolveMaxCheatRegression</code>；hook/路径不增加；token 回退 ≤ <code>evolveMaxTokenRegression</code>；样本能分辨门槛（<code>evolveRequireDetectability</code>）；benchmark digest 未变；预算未耗尽。任何一项失败都写报告并拒绝。</p>
+<h3 id="approval">5.3 审批与 promote</h3>
+<ul>
+  <li><code>evolvePromote: approval</code>（默认）询问审批服务；只有 <code>allowed-once</code> promote。</li>
+  <li><code>interaction: auto</code> 映射审批策略 <code>never</code>，无人值守只能提案。</li>
+  <li><code>evolvePromote: auto</code> 只用于 CI；它绕过人工，但仍需通过门禁/headroom/detectability/显著性配置。</li>
+  <li>promote 是 pointer CAS + skill 注册集替换；manifest 状态变 <code>promoted</code>，另一个版本可能成为当前。</li>
+  <li>审批被拒/审批服务缺失：版本保持 <code>gated-passed</code>，可离线 promote。</li>
+</ul>
+<h3 id="monitor">5.4 在线监控与 hard-out</h3>
+<ul>
+  <li>每个已完成 run 折进当前版本的分数窗口；窗口大小 <code>evolveRollbackWindow</code>。</li>
+  <li>版本自己的第一个完整窗口成为在线基线；后续窗口若终止率回退超过 <code>evolveRollbackMargin</code> 或出现 cheat 回退，指针退回 parent，写 <code>quarantine.json</code>。</li>
+  <li>线上 run 永不与 holdout 指标比较（分布不同）；监控只看同版本窗口。</li>
+  <li>hard-out 是封存审计：每 <code>evolveHardoutAuditEvery</code> 次 promote 一次，与 parent 在同一批 sealed 任务上对照；回退设置 <code>promotionHeld</code>，阻止后续 promote 直到运维清除。</li>
+  <li>hard-out 永不参与日常门禁；它只在 promote 后周期性审计。</li>
+</ul>
+<h3 id="notices">5.5 通知、账本与拒绝反馈</h3>
+<ul>
+  <li>promote/rollback 写一行 <code>[SYSTEM NOTICE] LCRD Policy Promoted|Rolled Back: ...</code>，通过既有 <code>additionalContexts</code> 在下一次工具决策交给模型；不新增 session 事件。</li>
+  <li><code>policy-events.jsonl</code> 与 <code>current.json</code> 是权威记录；通知是 best-effort，会话立即结束可能收不到。</li>
+  <li>recorder 把 live active version 冻结进 <code>run.json.policy_version</code>；下一个任务重新读取 <code>current.json</code>。</li>
+  <li>静态拒绝、gate 失败、gate 中止写 <code>rejected-edits.jsonl</code>（schema 1）；下一次提案读取最近 3 条，只读最近 20 条；坏行/IO 失败不阻塞提案。</li>
+  <li><code>quarantineHints</code> 继续从 <code>quarantine.json</code> 提供；与被拒记录分开呈现。</li>
 </ul>
 </section>
 
+<section id="gate-internals">
+<h2>6. 门禁指标与判定</h2>
+<h3 id="sampling">6.1 抽样、隔离与 reward</h3>
+<ul>
+  <li><strong>三层基准</strong>：<code>train.jsonl</code> 供模型提案；<code>holdout/*.jsonl</code> 供门禁抽签；<code>hardout/*.jsonl</code> 只供封存审计。</li>
+  <li><strong>轮换</strong>：每次抽 <code>evolveHoldoutSize</code> 个 holdout，最近 <code>evolveHoldoutCooldown</code> 次抽中的任务暂时不合格；pool 不够会响亮失败。</li>
+  <li><strong>隔离</strong>：每 run 使用 <code>runs/&lt;side&gt;/&lt;task&gt;-&lt;repeat&gt;/workspace</code>；有 fixture 时复制到 workspace 根，否则空目录；child cwd 与 <code>LCRD_RUN_WORKSPACE</code> 指向它；reward 也在那里运行。</li>
+  <li><strong>reward 信任边界</strong>：benchmark 是运维可信产物；reward 以 <code>shell: true</code> 在 workspace 执行。数字优先（0–1），否则 exit 0 = 1，其他/超时/启动失败 = 0。</li>
+  <li><strong>probe</strong>：只验证候选挂载产出 <code>run.json</code>，每个 gate 只跑一次，不评分、不执行 reward。</li>
+  <li><strong>missing reward</strong>：<code>admission: reward</code> 下任何 null reward 都视为不完整证据；不再静默从配对中丢弃。</li>
+  <li><strong>digest</strong>：门禁前后重算 benchmark digest；中途改文件则本轮作废。</li>
+</ul>
+<h3 id="headroom">6.2 headroom / detectability / 显著性</h3>
+<table>
+  <thead><tr><th>概念</th><th>公式/含义</th><th>不满足时</th></tr></thead>
+  <tbody>
+    <tr><td><code>detectability</code></td><td><code>z(1-alpha/2) * sd(paired deltas) / sqrt(pairedN)</code>；样本能分辨的最小增益</td><td><code>evolveRequireDetectability: true</code> 时拒绝准入；提示增加 repeats/holdout 或降低 minGain</td></tr>
+    <tr><td><code>headroom</code></td><td><code>1 - baseline.rewardRate</code>；基准还能体现的最大增益</td><td>baseline-only report，<code>gate-aborted</code>，candidate 不启动</td></tr>
+    <tr><td><code>minGain</code></td><td>绝对增益门槛；<code>admission: reward</code> 用 rewardRate，self-report 用 passRate</td><td>门禁失败（<code>gated-failed</code>）</td></tr>
+    <tr><td><code>significance</code></td><td><code>off</code> 或 paired bootstrap；<code>bootstrap</code> 要求 reward + ≥2 pairs；CI 包含 0 时拒绝</td><td>gate 失败，reason 含 <code>not significant</code></td></tr>
+    <tr><td><code>alpha</code></td><td>双侧错误率，默认 0.05；同时影响 detectability 与 bootstrap</td><td>配置必须 0 &lt; alpha &lt; 1；否则配置错误</td></tr>
+  </tbody>
+</table>
+<div class="callout warn"><strong>两者不能互相替代</strong>：detectability 小但 headroom 小（例如基线 0.95），或 headroom 大但样本太吵，都不能支撑 promote。先跑 <code>lcrd:policy noise</code>，再定 minGain/holdoutSize/repeats。</div>
+<h3 id="decision">6.3 决策树与 report 字段</h3>
+<pre><code>budget aborted? ──► gate-aborted (token/wall)
+benchmark digest changed? ──► gated-failed (void)
+detectability &gt; minGain and requireDetectability? ──► gated-failed (insufficient evidence)
+reward gain &lt; minGain? ──► gated-failed
+termination/cheat/hook/path/token regression? ──► gated-failed
+significance bootstrap CI includes 0? ──► gated-failed
+otherwise ──► gated-passed (then approval)
+instrument precondition fails (headroom/missing reward) ──► gate-aborted (baseline-only or full report)</code></pre>
+<table>
+  <thead><tr><th>report 字段</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>outcome</code></td><td><code>gated-passed</code> / <code>gated-failed</code> / <code>gate-aborted</code>；与 manifest 状态一致</td></tr>
+    <tr><td><code>pass</code> / <code>reasons</code></td><td>门禁决定与逐条原因</td></tr>
+    <tr><td><code>baseline</code> / <code>candidate</code></td><td>聚合指标；baseline-only abort 时 candidate.runs = 0</td></tr>
+    <tr><td><code>detectability</code> / <code>pairedN</code> / <code>minGain</code></td><td>样本分辨力、配对样本数、门槛</td></tr>
+    <tr><td><code>samples</code></td><td>每个 run 的原始行，报告不丢原始证据</td></tr>
+    <tr><td><code>selectedTasks</code> / <code>repeats</code> / <code>benchmarkDigest</code></td><td>抽签与基准身份，支持审计复算</td></tr>
+  </tbody>
+</table>
+<p><code>gain-report.json</code> 另含 paired rows、meanDelta、ciLow/ciHigh、verdict、token、detectability；<code>brief</code> 只列异常项。baseline-only abort 的 brief 显示 <code>ABORTED — candidate was not run</code>。</p>
+</section>
+
 <section id="store">
-<h2>6. Store 与账本</h2>
+<h2>7. 策略 store 与账本</h2>
 <pre><code>&lt;policyDir&gt;/
-  current.json             # active version, revision, history, promotionHeld
+  current.json                 # active version, revision, history, promotionHeld
   versions/
-    v0001/                 # immutable policy version
+    v0001/                     # immutable version
       manifest.json
       skills/...
       gate/&lt;gateId&gt;/
@@ -299,144 +423,536 @@ verifier (assert | python | llm) evaluates the result
         gain-report.json
         brief.md
         brief.json
-        runs/&lt;side&gt;/&lt;task-repeat&gt;/
+        runs/&lt;side&gt;/&lt;task&gt;-&lt;repeat&gt;/
           overlay-*.yml
           gate-stderr.log
           workspace/
-  quarantine.json          # online revert records
-  holdout-history.json     # rotating draw history
-  archive.jsonl            # admission ledger
-  policy-events.jsonl      # promote/rollback ledger
-  rejected-edits.jsonl     # negative feedback (bounded read)
+  quarantine.json              # online revert records
+  holdout-history.json         # rotating draw history
+  archive.jsonl                # admission ledger
+  policy-events.jsonl          # promote/rollback ledger
+  rejected-edits.jsonl         # negative feedback (bounded read)
 </code></pre>
-<p>策略生命周期只写策略根，不写 session 日志；不加载 LCRD 的构建永远遇不到未知 session 事件。指针 CAS 由 <code>evolve/store.ts</code> 负责；版本目录不可变；门禁报告/预审随版本保留，是审计链。</p>
+<ul>
+  <li><strong>版本不可变</strong>：manifest、skills、gate 报告写入后不原地改写；新提案产生新版本目录。</li>
+  <li><strong>指针 CAS</strong>：<code>current.json</code> 的 revision 防止并发 promote/rollback 覆盖。</li>
+  <li><strong>状态</strong>：<code>proposed</code> / <code>gated-passed</code> / <code>gated-failed</code> / <code>gate-aborted</code> / <code>promoted</code> / <code>quarantined</code>。</li>
+  <li><strong>账本</strong>：<code>archive.jsonl</code> 记录每次准入；<code>policy-events.jsonl</code> 记录切换；两者与 <code>current.json</code> 一起构成审计链。</li>
+  <li><strong>与 session 分离</strong>：策略记录不进入 session 事件；旧构建不会遇到未知事件。</li>
+</ul>
 </section>
 
 <section id="dataset">
-<h2>7. Dataset 与 DPO</h2>
-<p><code>datasetExport: run</code> 在 run 结束时追加：</p>
+<h2>8. Dataset / DPO / 归因</h2>
 <table>
-  <thead><tr><th>文件</th><th>内容</th></tr></thead>
+  <thead><tr><th>文件</th><th>内容与用途</th></tr></thead>
   <tbody>
-    <tr><td><code>dataset.jsonl</code></td><td>每个协议事件一行，含 task_group、failureClass、infraFailure、trainability 与记录字段</td></tr>
-    <tr><td><code>relaxations.jsonl</code></td><td>失败后放松检查的声明，含前后表达式、轴、cause、relax_type</td></tr>
-    <tr><td><code>runs.jsonl</code></td><td>run 级元数据：插件/协议/模型/平台/策略版本</td></tr>
-    <tr><td><code>dpo.jsonl</code></td><td><code>prompt/chosen/rejected/meta</code>；chosen 是恢复放松前检查的<strong>合成</strong>侧</td></tr>
-    <tr><td><code>trainable.jsonl</code> / <code>needs_review.jsonl</code></td><td>按 trainability 分流；infra 失败只留在全量流</td></tr>
+    <tr><td><code>dataset.jsonl</code></td><td>每个协议事件一行，含 <code>step</code>/<code>ts</code>/<code>task_group</code>/<code>failureClass</code>/<code>infraFailure</code>/<code>trainability</code> 与记录字段。</td></tr>
+    <tr><td><code>relaxations.jsonl</code></td><td>失败后放松检查的声明；含前后表达式、轴、<code>cause</code>、<code>relax_type</code>；只有 <code>speculative_cheat</code> 被门禁/监控惩罚。</td></tr>
+    <tr><td><code>runs.jsonl</code></td><td>run 级元数据：插件/协议版本、模型、provider、平台、cwd、耗时、最终判定、策略版本。</td></tr>
+    <tr><td><code>dpo.jsonl</code></td><td><code>prompt/chosen/rejected/meta</code>；chosen 是恢复放松前检查的合成侧，meta 带 <code>synthetic</code>、repair、轴。</td></tr>
+    <tr><td><code>trainable.jsonl</code> / <code>needs_review.jsonl</code></td><td>按 <code>trainability</code> 分流；infra 失败只留在全量流。</td></tr>
+    <tr><td><code>anchor-judge.jsonl</code></td><td>锚点与声明的 within/outside 判定请求。</td></tr>
   </tbody>
 </table>
-<div class="callout warn"><strong>DPO 的边界</strong>：<code>dpo.jsonl</code> 主要教“不要弱化校验”，不是任务能力提升。要做能力权重路线，需要成功轨迹/奖励数据与独立评测；当前数据量、GPU、open-weight 模型都不在仓库内。</div>
-<p><code>pnpm run lcrd:audit -- --dataset &lt;corpus&gt; --benchmark &lt;dir&gt;</code> 先统计 pair、group、泄漏、trainability、DPO 形状。<code>pnpm run lcrd:dpo</code> 只做 session log 对齐/DPO 导出，不是训练器。</p>
+<p><strong>导出</strong>：<code>datasetExport: run</code> 在 run 结束（disposal）时把该 run 追加到 <code>datasetDir</code>；<code>lcrd:dpo</code> 可把 session log 与语料对齐并导出 DPO。文件级导出需要 session log，进程内导出不需要。</p>
+<p><strong>trainability</strong>：<code>trainable</code> 是引擎确定性标签（上下文行、通过判定、invalid check 等）；<code>needs-review</code> 需要人或 LLM 判别（honest-mismatch、llm-stop-unmet、python-check-failed、tool-isError、unclassified）；<code>discard</code>/infra 失败只进入全量流。</p>
+<p><strong>归因</strong>：默认日志启发式把 verdict/exception/verifier 映射到 FailureClass，把放松声明映射到 RelaxationCause 与 Trainability。<code>attributionModule</code> 可用领域 bundle 替换三个分类函数；不完整/非法 bundle 在启动时响亮失败。</p>
+<p><strong>DPO 的边界</strong>：当前 DPO 主要教“不要弱化校验”，不是通用任务能力；要提升任务表现需要成功轨迹/奖励数据与独立评测。合成 chosen 不等于真实人类偏好。</p>
 </section>
 
 <section id="weight">
-<h2>8. 权重路线</h2>
+<h2>9. 权重路线（P0/P1/P2）</h2>
+<p>权重路线与提示词门禁分离，当前是<strong>脚手架 + 评测底座</strong>，不是已跑通的训练结果。</p>
 <div class="grid">
-  <div class="card"><b>P0 数据审计</b><p><code>lcrd:audit</code>：counts、trainability、DPO 形状、task group、benchmark 泄漏；无 GPU。</p></div>
-  <div class="card"><b>P0 评测底座</b><p><code>lcrd:weight-eval</code>：runner 无关的 base/candidate 评测，独立 workspace + reward；不内置模型。</p></div>
-  <div class="card"><b>P1 训练脚手架</b><p><code>training/prepare_dpo.py</code> 按 group 切分；<code>training/train_dpo.py</code> QLoRA DPO；需要 open-weight 模型+GPU。</p></div>
-  <div class="card"><b>P2 checkpoint 控制面</b><p><code>lcrd:checkpoint</code>：不可变 manifest、eval 证据、promote/rollback；与 skill policy store 分离。</p></div>
+  <div class="card"><b>P0 数据审计</b><p><code>lcrd:audit</code> 统计 corpus 文件、行数、invalid、trainability、DPO 形状、group、benchmark 泄漏；无 GPU。</p></div>
+  <div class="card"><b>P0 评测底座</b><p><code>lcrd:weight-eval</code> 用任意 runner 跑 base/candidate；每任务独立 workspace + fixture + reward；不内置模型。</p></div>
+  <div class="card"><b>P1 训练脚手架</b><p><code>training/prepare_dpo.py</code> 按 group 切分；<code>train_dpo.py</code> QLoRA DPO；需要 open-weight 模型 + GPU。</p></div>
+  <div class="card"><b>P2 checkpoint 控制面</b><p><code>lcrd:checkpoint</code> 注册不可变 manifest/eval、list/show/promote/rollback；与 skill policy store 分离。</p></div>
 </div>
-<p>没有“在线 RSI 训练循环”，没有在 agent 内执行训练，没有 API 模型的权重更新。正确顺序：数据审计 → 训练 → 独立 held-out eval → checkpoint register/promote；任何一步没有证据都不应进入下一步。</p>
+<p>没有在线 RSI 训练循环，没有 agent 内训练，也没有 API 模型的权重更新。正确顺序：<strong>数据审计 → 训练 → 独立 held-out eval → checkpoint register/promote</strong>。任何一步没有证据都不进入下一步。</p>
 </section>
 
 <section id="config">
-<h2>9. 配置与命令</h2>
-<h3>关键配置</h3>
+<h2>10. 全部配置参数</h2>
+<p>以下字段来自 <code>src/config.ts</code> 的 <code>Config</code> interface 与同名 schemastery schema。类型旁的默认值是 schema 默认；<code>required(false)</code> 表示可选且无默认。所有字段写在 <code>cordis.yml</code> 的 <code>lcrd</code> 行 <code>config</code> 下；patch 会整体替换该行 config，所以覆盖时要复述完整字段。</p>
+<div class="callout warn"><strong>调整顺序</strong>：先确定运行时协议与校验器 → 再决定学习/文件流 → 再开演化 → 最后调门禁样本与统计。不要同时改 minGain、holdoutSize、repeats、significance，否则无法归因。</div>
+
+<h3 id="cfg-runtime">10.1 运行时 / 校验器</h3>
+
+<div class="param"><h4><code>maxRetries</code> <span class="badge">number · 3</span></h4><div class="sig">运行时终止预算</div>
+<p><strong>作用</strong>：连续校验失败达到该值后终止任务，后续工具调用（包括 <code>lcrd_plan</code>）被拦截并转人工。真实用户消息会重置计数。</p>
+<p><strong>联动</strong>：学习模式开启且达到阈值时暂停直接重试，由 <code>maxLearningAttempts</code> 接管；hook 的 deny/block/抛错独立计数，但同样以该值为上限；<code>failedCheckConsumesRetry</code> 决定引擎拒绝的检查是否消耗它。</p>
+<p><strong>风险</strong>：太小会让正常探索过早终止；太大浪费 token。生产建议 3–10；门禁/评测使用固定值，避免候选比较漂移。</p></div>
+
+<div class="param"><h4><code>pythonCommand</code> <span class="badge">string · "python"</span></h4><div class="sig">Python 校验器启动命令</div>
+<p><strong>作用</strong>：<code>verifier.kind = python</code> 时用该命令启动固定模板脚本；Windows 需要可执行解释器或绝对路径。</p>
+<p><strong>联动</strong>：<code>pythonTimeoutMs</code> 控制超时；python 检查不受声明期区分度探测，非法检查只能在 post-execute 被判 FAIL。</p>
+<p><strong>风险</strong>：命令写错会让所有 python 校验失败；这是部署可信配置，不接受模型输入。</p></div>
+
+<div class="param"><h4><code>pythonTimeoutMs</code> <span class="badge">number · 30000</span></h4><div class="sig">Python 校验超时</div>
+<p><strong>作用</strong>：解释器进程超过该毫秒数被 kill，判定 FAIL。</p>
+<p><strong>联动</strong>：受机器性能与检查复杂度影响；过短会把合法慢检查误判为失败。</p></div>
+
+<div class="param"><h4><code>verifierModel</code> <span class="badge">string · 可选</span></h4><div class="sig">LLM 校验模型</div>
+<p><strong>作用</strong>：<code>verifier.kind = llm</code> 使用的模型 id；缺省使用 agent 自己的模型。</p>
+<p><strong>联动</strong>：<code>evolveScanModel</code> 缺省回退到它；LLM 校验每次多一次独立 API 调用。</p>
+<p><strong>风险</strong>：与主模型相同只提供“独立会话 + 固定提示词”的隔离，不提供跨账号/跨厂商隔离；要更强独立性请配置不同模型/账号。</p></div>
+
+<div class="param"><h4><code>logDir</code> <span class="badge">string · 可选</span></h4><div class="sig">Flow 日志与 task-flow 根</div>
+<p><strong>作用</strong>：flow 日志根目录；默认插件包下的 <code>lcrd-flow/</code>。file-flow 的 task-flow 根是它的同级兄弟。</p>
+<p><strong>联动</strong>：<code>evolvePolicyDir</code>/<code>datasetDir</code> 缺省也相对它附近；把 <code>logDir</code> 放到 workspace 下可让 task-flow 根跟随，解决文件沙箱 <code>workspace-write</code> 拒绝。</p>
+<p><strong>风险</strong>：放在模型可写但非持久的位置会导致日志丢失；放在沙箱可见根之外会让模型无法写流程文件。</p></div>
+
+<div class="param"><h4><code>interaction</code> <span class="badge">"auto" | "auth" | "manual" · "manual"</span></h4><div class="sig">人工交互策略</div>
+<p><strong>作用</strong>：控制审批提示与 <code>ask_user_question</code>。<code>auto</code>：审批自动拒绝，问题自动返回“请自主判断”；<code>auth</code>：审批交人工，问题保持交互；<code>manual</code>：两者交 UI answerer。</p>
+<p><strong>联动</strong>：<code>auto</code> 下审批策略是 <code>never</code>，因此演化只能提案不能 promote；<code>evolvePromote: approval</code> 仍然有效但无人可批。</p>
+<p><strong>风险</strong>：CI 用 auto 可避免挂起；需要人工放行时不能 auto。</p></div>
+
+<div class="param"><h4><code>failedCheckConsumesRetry</code> <span class="badge">boolean · true</span></h4><div class="sig">引擎拒绝的检查是否消耗重试</div>
+<p><strong>作用</strong>：true 时 <code>invalid-condition</code>/<code>eval-error</code> 与真实失败共享 <code>maxRetries</code>（历史行为）；false 时它们由 <code>invalidChecks</code> 独立计数，任务预算只度量真实步骤结果。</p>
+<p><strong>联动</strong>：false 仍以 <code>maxRetries</code> 为上界；该计数出现在每条声明的 context 里。</p>
+<p><strong>用途</strong>：同一批任务跑 true/false 是对照实验，区分“模型不会写检查”与“任务没做成”。</p></div>
+
+<div class="param"><h4><code>rejectPresenceOnly</code> <span class="badge">boolean · false</span></h4><div class="sig">拒绝仅存在性断言</div>
+<p><strong>作用</strong>：在声明期拒绝只断言存在/类型/非空、不钉字面量、也不读结构化字段的 assert 条件。</p>
+<p><strong>联动</strong>：区分度门禁（unbound、non-compiling、tautological）始终运行；这是额外的 form 检查，只作用于 assert。</p>
+<p><strong>风险</strong>：开启会提高声明门槛，可能迫使模型写更具体的检查；不会影响 python/llm。</p></div>
+
+<div class="param"><h4><code>declarationMaxHoldRate</code> <span class="badge">number · 可选 (0,1]</span></h4><div class="sig">声明期 hold-rate 上限</div>
+<p><strong>作用</strong>：声明在探测矩阵上的最大通过率必须低于该值，否则声明被拒；缺省只记录 rate，不强制。</p>
+<p><strong>联动</strong>：只覆盖 assert；python/llm 没有可探测条件列表。开启后新 verdict 不会携带达到/超过上限的 rate；重新导出旧语料要考虑 <code>withHoldRateReview</code>。</p>
+<p><strong>风险</strong>：过严会让合法但宽松的检查在声明期被拒；先用 0.9 等宽容值观察。</p></div>
+
+<h3 id="cfg-learning">10.2 学习模式</h3>
+
+<div class="param"><h4><code>learningEnabled</code> <span class="badge">boolean · false</span></h4><div class="sig">学习模式总开关</div>
+<p><strong>作用</strong>：开启后，连续失败达到阈值暂停直接重试，注册 <code>lcrd_learn</code>/<code>lcrd_learn_verify</code> 并要求学习轮；关闭保持纯回退/终止行为。</p>
+<p><strong>联动</strong>：<code>learningThreshold</code>、<code>maxLearningAttempts</code>、<code>learningTools</code>；学习期间 <code>maxRetries</code> 终止挂起。</p>
+<p><strong>风险</strong>：每轮增加 API/token；自评是模型自写标准，真正判定仍是重解的外生校验。</p></div>
+
+<div class="param"><h4><code>learningThreshold</code> <span class="badge">number · 5</span></h4><div class="sig">进入学习模式的连续失败数</div>
+<p><strong>作用</strong>：连续失败达到该值且学习开启时进入学习模式。</p>
+<p><strong>联动</strong>：如果它大于 <code>maxRetries</code>，普通重试可能在进入学习前终止；生产应让阈值小于等于重试预算。</p></div>
+
+<div class="param"><h4><code>maxLearningAttempts</code> <span class="badge">number · 3</span></h4><div class="sig">学习轮预算</div>
+<p><strong>作用</strong>：自评失败或重解失败消耗一轮；预算耗尽终止转人工。</p>
+<p><strong>联动</strong>：自评通过且重解成功会重置学习预算；无学习工具调用/无证据引用的自评通过被拒绝且不消耗轮次。</p></div>
+
+<div class="param"><h4><code>learningTools</code> <span class="badge">string[] · web_search/read/glob/grep/skill/subagent/web_fetch</span></h4><div class="sig">学习阶段允许的工具</div>
+<p><strong>作用</strong>：学习阶段白名单工具不要求计划/校验直接放行；任务工具与 <code>lcrd_plan</code> 被拦截。</p>
+<p><strong>联动</strong>：至少一次白名单工具调用且引用登记证据，自评才可能通过；未注册名字无害。</p>
+<p><strong>风险</strong>：放入写工具会扩大学习阶段能力；建议只放只读知识获取工具。</p></div>
+
+<h3 id="cfg-fileflow">10.3 文件式任务流</h3>
+
+<div class="param"><h4><code>fileFlowEnabled</code> <span class="badge">boolean · false</span></h4><div class="sig">文件式任务流开关</div>
+<p><strong>作用</strong>：开启后注入文件流协议段，插件创建并固定 taskflow 目录，模型维护 <code>task.md</code>/<code>subtasks/</code>/<code>progress.md</code>，逐个执行子任务并最终整任务校验。</p>
+<p><strong>联动</strong>：<code>fileFlowPathViolationsMax</code>、<code>workspaceRoot</code>、<code>fileFlowTools</code>；task-flow 根是 <code>logDir</code> 的同级。</p>
+<p><strong>适用</strong>：只有 bash/字符串替换编辑器的极简部署；标准部署保持关闭，避免额外上下文与目录开销。</p></div>
+
+<div class="param"><h4><code>fileFlowPathViolationsMax</code> <span class="badge">number · 3</span></h4><div class="sig">task-flow 路径违规上限</div>
+<p><strong>作用</strong>：读写当前任务目录之外但仍在 <code>task-flow/</code> 下的路径会计数；达到上限终止为严重幻觉。引导性拒绝不计入。</p>
+<p><strong>联动</strong>：只有 <code>fileFlowEnabled</code> 时生效；与门禁的 <code>pathViolations</code> 指标相关。</p></div>
+
+<div class="param"><h4><code>workspaceRoot</code> <span class="badge">string · 可选</span></h4><div class="sig">任务产物 workspace 绝对路径</div>
+<p><strong>作用</strong>：注入文件流协议文本，告诉模型任务产物应写到哪里；空则省略该行。</p>
+<p><strong>回退</strong>：session cwd → 部署 sandbox <code>workspaceRoot</code> → <code>DSH_CWD</code> → fs backend 工作根。</p>
+<p><strong>风险</strong>：部署工作区与上述来源不一致时必须显式设置，否则模型可能写进错误别名；沙箱 <code>workspace-write</code> 时它必须位于可写边界内。</p></div>
+
+<div class="param"><h4><code>fileFlowTools</code> <span class="badge">string[] · str_replace_editor/write/edit</span></h4><div class="sig">受守卫的写工具</div>
+<p><strong>作用</strong>：守卫读取这些工具的 <code>path</code> 参数；读操作放行；shell 命令路径不检查。</p>
+<p><strong>风险</strong>：如果部署使用自定义写工具而没加入该列表，文件流路径约束不会被应用。</p></div>
+
+<h3 id="cfg-dataset">10.4 数据集 / 归因 / hooks</h3>
+
+<div class="param"><h4><code>datasetExport</code> <span class="badge">"off" | "run" · "off"</span></h4><div class="sig">自动导出开关</div>
+<p><strong>作用</strong>：<code>run</code> 时在 run 结束（agent disposal）把该 run 的 dataset/DPO 行追加到 <code>datasetDir</code>，不需要额外命令。</p>
+<p><strong>联动</strong>：<code>datasetDir</code>、<code>attributionModule</code>；进程内导出不需要 session log，文件级导出需要。</p>
+<p><strong>风险</strong>：开启会增加结束时的写盘开销；不动 run 的实时路径。</p></div>
+
+<div class="param"><h4><code>datasetDir</code> <span class="badge">string · 可选</span></h4><div class="sig">数据集输出目录</div>
+<p><strong>作用</strong>：缺省为 flow 日志旁的 <code>dataset/</code>。写入 <code>dataset.jsonl</code>、<code>relaxations.jsonl</code>、<code>runs.jsonl</code>、<code>dpo.jsonl</code>、<code>trainable.jsonl</code>、<code>needs_review.jsonl</code> 等。</p>
+<p><strong>风险</strong>：append-only 语料会持续增长；不要在训练时把输出目录指到已提交的 corpus。</p></div>
+
+<div class="param"><h4><code>attributionModule</code> <span class="badge">string · 可选</span></h4><div class="sig">领域归因 bundle</div>
+<p><strong>作用</strong>：模块路径/包名，default export 提供 <code>classifyFailure</code>、<code>classifyRelaxationCause</code>、<code>classifyTrainability</code>；加载后用于 dataset 行的分类。</p>
+<p><strong>联动</strong>：相对路径按进程 cwd 解析；不完整/非法 bundle 在启动时响亮失败；缺省保留日志启发式。</p>
+<p><strong>风险</strong>：分类函数应只读已记录字段，不应接触实时工具结果；错误分类会污染训练数据。</p></div>
+
+<div class="param"><h4><code>hooksModule</code> <span class="badge">string · 可选</span></h4><div class="sig">部署策略 hook</div>
+<p><strong>作用</strong>：加载 <code>checkPlan</code>/<code>checkResult</code> 两个可选检查。checkPlan 可在声明后替换/拒绝计划；checkResult 可在校验后 block/terminate。</p>
+<p><strong>联动</strong>：替换计划对模型静默；替换仍过声明期门禁；拦截独立计数、以 <code>maxRetries</code> 为上限；deny 清除旧计划。</p>
+<p><strong>风险</strong>：hook 是受信部署代码，能看到计划与结果；非法替换会响亮失败。不要用它绕过外生校验。</p></div>
+
+<h3 id="cfg-evolution">10.5 演化核心</h3>
+
+<div class="param"><h4><code>evolveEnabled</code> <span class="badge">boolean · false</span></h4><div class="sig">策略演化总开关</div>
+<p><strong>作用</strong>：开启提案工具、policy store 访问、候选挂载、在线监控与 hard-out；关闭时插件是纯协议。</p>
+<p><strong>前提</strong>：<code>evolveBenchmarkDir</code> 必填，且组合 <code>@deepseek-ai/dsh-skill</code>；门禁 child 还必须加载 LCRD 插件（gate profile）。</p></div>
+
+<div class="param"><h4><code>evolvePolicyDir</code> <span class="badge">string · 可选</span></h4><div class="sig">策略根目录</div>
+<p><strong>作用</strong>：存放 <code>current.json</code>、<code>versions/</code>、quarantine、holdout history、账本与 rejected-edits；缺省为 flow 日志旁的 <code>policy/</code>。</p>
+<p><strong>风险</strong>：必须对插件可读写；不要放进 holdout/hard-out 或模型可写根；备份它等于备份审计链。</p></div>
+
+<div class="param"><h4><code>evolveBenchmarkDir</code> <span class="badge">string · enabled 时必填</span></h4><div class="sig">三层基准根</div>
+<p><strong>作用</strong>：读取 <code>train.jsonl</code>、<code>holdout/*.jsonl</code>、<code>hardout/*.jsonl</code>；每条 holdout 任务应有 <code>reward</code> 与可选 <code>fixture</code>。</p>
+<p><strong>边界</strong>：train 供模型提案；holdout 仅供门禁抽签；hardout 仅供封存审计。holdout/hardout 必须在模型可读根之外。</p>
+<p><strong>风险</strong>：路径写错/任务缺少 reward 会让门禁失败；benchmark 在门禁中被编辑会让整轮作废（digest 变化）。</p></div>
+
+<div class="param"><h4><code>evolveGateCommand</code> <span class="badge">string · "dsh"</span></h4><div class="sig">门禁 child 启动命令</div>
+<p><strong>作用</strong>：启动 gate child 的可执行文件；缺省 PATH 上的 <code>dsh</code>。</p>
+<p><strong>联动</strong>：<code>evolveGateArgs</code> 在其后、harness flags 前插入；child 还接收 <code>--profile</code>、<code>--patch</code>、任务 anchor。</p>
+<p><strong>风险</strong>：命令必须能从 LCRD 进程环境解析；源码运行可能需要 node/tsx 包装。</p></div>
+
+<div class="param"><h4><code>evolveGateArgs</code> <span class="badge">string[] · []</span></h4><div class="sig">Gate child 前置参数</div>
+<p><strong>作用</strong>：例如源码运行 <code>["--import","tsx/esm","apps/cli/src/bin.ts"]</code>；被 prepend 到 harness flags 之前。</p>
+<p><strong>风险</strong>：不要把 profile/patch 写进这里；那些由 gate 自动追加。</p></div>
+
+<div class="param"><h4><code>evolveGateProfile</code> <span class="badge">string · "headless"</span></h4><div class="sig">Gate child profile</div>
+<p><strong>作用</strong>：child 启动的 profile；必须挂载 LCRD 与 skill 服务。裸 <code>headless</code> 不含 LCRD，overlay 只按 <code>id: lcrd</code> 覆盖，不会插入行。</p>
+<p><strong>推荐</strong>：创建 <code>lcrd-gate</code>（dsh-base + dsh-headless + <code>@deepseek-ai/dsh-experimental-lcrd-gate</code>），并设置本项。</p>
+<p><strong>失败</strong>：profile 缺行时 probe 无 <code>run.json</code>，gate 以配置错误中止。</p></div>
+
+<div class="param"><h4><code>evolveGateRunTimeoutMs</code> <span class="badge">number · 900000</span></h4><div class="sig">单个 gate child 超时</div>
+<p><strong>作用</strong>：child 超过该毫秒被 kill；也作为 reward timeout 的缺省来源。</p>
+<p><strong>风险</strong>：过短会误杀慢任务；过长会让坏 child 占住 gate 预算。</p></div>
+
+<div class="param"><h4><code>evolveCandidateVersion</code> <span class="badge">string · 可选</span></h4><div class="sig">只由 gate overlay 写入</div>
+<p><strong>作用</strong>：把某一 policy 版本挂载为 active，同时关闭演化；部署通常不设置。</p>
+<p><strong>风险</strong>：手工设置会让正常会话固定到一个候选版本；只应出现在生成的 overlay。</p></div>
+
+<h3 id="cfg-sampling">10.6 门禁抽样与成本</h3>
+
+<div class="param"><h4><code>evolveRepeats</code> <span class="badge">number · 3</span></h4><div class="sig">每任务每侧重复数</div>
+<p><strong>作用</strong>：配对 n = <code>evolveHoldoutSize × evolveRepeats</code>；增加它会降低 detectability，但成本近似线性增加。</p>
+<p><strong>成本</strong>：gate child 次数 ≈ <code>holdoutSize × repeats × 2 + 1（probe）</code>。</p>
+<p><strong>风险</strong>：只看 repeats 不看 headroom 会继续做无意义的实验。</p></div>
+
+<div class="param"><h4><code>evolveHoldoutSize</code> <span class="badge">number · 5</span></h4><div class="sig">每次抽中的 holdout 任务数</div>
+<p><strong>作用</strong>：从 holdout pool 抽多少任务；与 repeats 一起决定配对 n 和成本。</p>
+<p><strong>联动</strong>：pool 不足或 cooldown 让可选项不足时会响亮失败；扩 pool 不会自动降低 n 需求，只降低选题波动。</p></div>
+
+<div class="param"><h4><code>evolveHoldoutCooldown</code> <span class="badge">number · 3</span></h4><div class="sig">holdout 轮换冷却</div>
+<p><strong>作用</strong>：最近该数量的 gate 抽中的任务暂时不合格，降低重复曝光。</p>
+<p><strong>风险</strong>：pool 很小时 cooldown 会让候选任务耗尽；这时应扩 pool 或降低 cooldown。</p></div>
+
+<div class="param"><h4><code>evolveHardoutAuditEvery</code> <span class="badge">number · 5 (0 disables)</span></h4><div class="sig">封存审计周期</div>
+<p><strong>作用</strong>：每 N 次 promote 用 hardout 与 parent 在同一批 sealed 任务上对照；0 关闭。</p>
+<p><strong>联动</strong>：审计回退设置 <code>promotionHeld</code>，阻止后续 promote 直到 <code>lcrd:policy clear-hold</code>。</p></div>
+
+<div class="param"><h4><code>evolveGateMaxTokens</code> <span class="badge">number · 2000000</span></h4><div class="sig">整轮 gate token 预算</div>
+<p><strong>作用</strong>：child 上报 token 累计超过该值即中止，status <code>gate-aborted</code>。</p>
+<p><strong>联动</strong>：<code>evolveRunMaxTokens</code> 是单 run 上限；<code>evolveGateMaxWallMs</code> 是墙钟上限。</p></div>
+
+<div class="param"><h4><code>evolveGateMaxWallMs</code> <span class="badge">number · 3600000</span></h4><div class="sig">整轮 gate 墙钟预算</div>
+<p><strong>作用</strong>：超过即中止，status <code>gate-aborted</code>。</p>
+<p><strong>风险</strong>：长任务/慢模型需要更大预算；否则会在样本不足时中止。</p></div>
+
+<div class="param"><h4><code>evolveRunMaxTokens</code> <span class="badge">number · 200000</span></h4><div class="sig">单 run token 上限</div>
+<p><strong>作用</strong>：写进 gate overlay，child 自身执行的上限；同时影响 gate 预算消耗。</p></div>
+
+<div class="param"><h4><code>evolveMaxTokenRegression</code> <span class="badge">number · 0.2</span></h4><div class="sig">相对 token 回退上限</div>
+<p><strong>作用</strong>：candidate tokens 不得超过 baseline × (1 + 该值)；0.2 = +20%。</p>
+<p><strong>风险</strong>：门槛太松会让“更贵但无收益”的 skill 通过成本检查；仍需 gain 判定。</p></div>
+
+<h3 id="cfg-verdict">10.7 判定与统计</h3>
+
+<div class="param"><h4><code>evolveMinGain</code> <span class="badge">number · 0.1</span></h4><div class="sig">绝对增益门槛</div>
+<p><strong>作用</strong>：<code>admission: reward</code> 时比较 rewardRate；self-report 时比较 passRate。必须同时满足 headroom 与 detectability。</p>
+<p><strong>风险</strong>：基线 0.95 时最大增益 0.05，0.1 永远不可能；应换基准或降低门槛并增加样本。</p></div>
+
+<div class="param"><h4><code>evolveMaxSafetyRegression</code> <span class="badge">number · 0</span></h4><div class="sig">允许的终止率绝对回退</div>
+<p><strong>作用</strong>：candidate terminatedRate - baseline terminatedRate 超过该值即拒绝。0 是零容忍策略。</p>
+<p><strong>注意</strong>：这是策略阈值，不是显著性检验；2 vs 0 可以拒绝而 Fisher p 不显著。</p></div>
+
+<div class="param"><h4><code>evolveMaxCheatRegression</code> <span class="badge">number · 0</span></h4><div class="sig">允许的 speculative-cheat 绝对回退</div>
+<p><strong>作用</strong>：cheatRate 回退超过该值即拒绝；同样为零容忍策略，不是统计显著。</p></div>
+
+<div class="param"><h4><code>evolveAdmission</code> <span class="badge">"reward" | "self-report" · "reward"</span></h4><div class="sig">准入指标</div>
+<p><strong>作用</strong>：<code>reward</code> 读取每个任务的 reward 命令（ground truth）；<code>self-report</code> 使用 agent 自己的校验通过率，仅适合 smoke。</p>
+<p><strong>联动</strong>：reward 下每任务必须有 reward，缺失即数据不完整；significance 要求 reward。</p>
+<p><strong>风险</strong>：self-report 可被 agent 自身逻辑影响，不能作为生产准入。</p></div>
+
+<div class="param"><h4><code>evolveSignificance</code> <span class="badge">"off" | "bootstrap" · "off"</span></h4><div class="sig">额外显著性证据</div>
+<p><strong>作用</strong>：<code>bootstrap</code> 对配对 delta 做 bootstrap 区间；区间包含 0 则拒绝。要求 reward 且至少 2 对样本。</p>
+<p><strong>联动</strong>：<code>evolveSignificanceAlpha</code>；默认 off，因为小样本下可能拒绝真实增益。</p>
+<p><strong>建议</strong>：先跑 <code>lcrd:policy noise</code>，确认 detectability 后再开。</p></div>
+
+<div class="param"><h4><code>evolveSignificanceAlpha</code> <span class="badge">number · 0.05</span></h4><div class="sig">双侧错误率</div>
+<p><strong>作用</strong>：bootstrap 与 detectability 的正态分位数使用；必须 0 &lt; alpha &lt; 1，否则 gate 配置错误。</p>
+<p><strong>风险</strong>：更小 alpha 更保守、需要更多样本；不要和 minGain 同时调。</p></div>
+
+<div class="param"><h4><code>evolveRequireDetectability</code> <span class="badge">boolean · true</span></h4><div class="sig">样本分辨力门槛</div>
+<p><strong>作用</strong>：detectability &gt; minGain 时拒绝准入，即使点估计过线。</p>
+<p><strong>联动</strong>：增加 repeats/holdout 或降低 minGain；关闭等于承认样本无法分辨门槛。</p>
+<p><strong>风险</strong>：关闭不是“加速”，而是放弃统计有效性。</p></div>
+
+<h3 id="cfg-proposal">10.8 提案与预审</h3>
+
+<div class="param"><h4><code>evolveMaxProposals</code> <span class="badge">number · 2</span></h4><div class="sig">每个任务边界的提案数</div>
+<p><strong>作用</strong>：限制同一任务内 <code>lcrd_propose</code> 次数；新用户命令重置。</p></div>
+
+<div class="param"><h4><code>evolveMaxSkills</code> <span class="badge">number · 8</span></h4><div class="sig">单个提案的 skill 数上限</div>
+<p><strong>作用</strong>：超过拒绝；skill 名称必须 kebab-case 且不能占用现有名称。</p></div>
+
+<div class="param"><h4><code>evolveSkillMaxBytes</code> <span class="badge">number · 16384</span></h4><div class="sig">单个 skill 正文字节上限</div>
+<p><strong>作用</strong>：超过拒绝；prevent prompt 膨胀。</p></div>
+
+<div class="param"><h4><code>evolveRationaleMax</code> <span class="badge">number · 2000</span></h4><div class="sig">rationale 截断长度</div>
+<p><strong>作用</strong>：manifest/预审记录只保留该长度的 rationale。</p></div>
+
+<div class="param"><h4><code>evolveStaticScan</code> <span class="badge">"rules" | "rules+llm" · "rules"</span></h4><div class="sig">静态扫描模式</div>
+<p><strong>作用</strong>：rules 是确定性规则；rules+llm 追加一次固定提示词模型扫描，输出不可用按 block。</p>
+<p><strong>联动</strong>：<code>evolveScanModel</code> 应独立于提案模型；扫描失败会阻断提案。</p></div>
+
+<div class="param"><h4><code>evolveScanModel</code> <span class="badge">string · 可选</span></h4><div class="sig">rules+llm 的扫描模型</div>
+<p><strong>作用</strong>：缺省回退 <code>verifierModel</code>；规则要求与提案模型不同，否则扫描不是独立审查。</p></div>
+
+<div class="param"><h4><code>evolveBriefTopN</code> <span class="badge">number · 5</span></h4><div class="sig">预审每节最多异常项</div>
+<p><strong>作用</strong>：静态 findings、unhealthy runs、quarantine 每节最多渲染该数量。</p></div>
+
+<h3 id="cfg-promotion">10.9 promote 与监控</h3>
+
+<div class="param"><h4><code>evolvePromote</code> <span class="badge">"approval" | "auto" · "approval"</span></h4><div class="sig">放行权威</div>
+<p><strong>作用</strong>：approval 询问审批服务，只有 allowed-once 放行；auto 不询问，仅供 CI。</p>
+<p><strong>联动</strong>：interaction auto 映射审批 never，因此无人值守只能提案；auto 仍受门禁/headroom/detectability 约束。</p></div>
+
+<div class="param"><h4><code>evolveRollbackWindow</code> <span class="badge">number · 10</span></h4><div class="sig">在线监控窗口</div>
+<p><strong>作用</strong>：每个版本收集多少个已完成 run 形成窗口；首个完整窗口成为在线基线。</p></div>
+
+<div class="param"><h4><code>evolveRollbackMargin</code> <span class="badge">number · 0.2</span></h4><div class="sig">在线终止率回退阈值</div>
+<p><strong>作用</strong>：后续窗口终止率高于该版本的在线基线超过该值，自动回滚并写 quarantine；cheat 回退默认零容忍。</p>
+<p><strong>风险</strong>：线上分布与 holdout 不同，不能拿门禁指标代替窗口基线。</p></div>
+
+<h3>10.10 参数组合速查</h3>
 <table>
-  <thead><tr><th>键</th><th>作用</th></tr></thead>
+  <thead><tr><th>目标</th><th>建议组合</th><th>不要做</th></tr></thead>
   <tbody>
-    <tr><td><code>maxRetries</code>, <code>learningEnabled</code>, <code>learningThreshold</code>, <code>maxLearningAttempts</code></td><td>运行时重试、学习模式预算</td></tr>
-    <tr><td><code>interaction</code></td><td><code>auto</code> / <code>auth</code> / <code>manual</code>；auto 用于无人值守</td></tr>
-    <tr><td><code>fileFlowEnabled</code>, <code>fileFlowTools</code>, <code>workspaceRoot</code></td><td>文件式任务流与 workspace 边界</td></tr>
-    <tr><td><code>evolveEnabled</code>, <code>evolveBenchmarkDir</code>, <code>evolvePolicyDir</code></td><td>演化开关、基准、策略根</td></tr>
-    <tr><td><code>evolveGateProfile</code>, <code>evolveGateArgs</code></td><td>门禁子进程 profile/参数；默认 headless 不含 LCRD</td></tr>
-    <tr><td><code>evolveRepeats</code>, <code>evolveHoldoutSize</code>, <code>evolveHoldoutCooldown</code></td><td>门禁样本与轮换</td></tr>
-    <tr><td><code>evolveMinGain</code>, <code>evolveRequireDetectability</code>, <code>evolveSignificance</code>, <code>evolveSignificanceAlpha</code></td><td>增益门槛、分辨力、显著性</td></tr>
-    <tr><td><code>evolveAdmission</code>, <code>evolvePromote</code></td><td>ground truth 准入与审批权威</td></tr>
-    <tr><td><code>evolveMaxTokenRegression</code>, <code>evolveGateMaxTokens</code>, <code>evolveGateMaxWallMs</code></td><td>成本/安全护栏</td></tr>
-    <tr><td><code>datasetExport</code>, <code>datasetDir</code></td><td>run 结束后自动导出 dataset/DPO</td></tr>
+    <tr><td>无人值守 smoke</td><td><code>interaction: auto</code>, <code>evolveAdmission: self-report</code></td><td>把 self-report 结果当生产增益</td></tr>
+    <tr><td>生产门禁</td><td><code>admission: reward</code>, <code>promote: approval</code>, <code>requireDetectability: true</code>, <code>significance: bootstrap</code>（噪声数据支持后）</td><td>auto + 小样本 + 高基线</td></tr>
+    <tr><td>教程/低预算</td><td><code>holdoutSize: 2–5</code>, <code>repeats: 1–2</code>, 关闭 significance</td><td>用这类结果做发布决策</td></tr>
+    <tr><td>统计有效</td><td>先 noise，再让 <code>detectability ≤ minGain</code>，且 <code>headroom ≥ minGain</code></td><td>只扩 pool 不扩 holdoutSize</td></tr>
+    <tr><td>安全优先</td><td><code>maxSafetyRegression: 0</code>, <code>maxCheatRegression: 0</code>, 人工审批</td><td>把零容忍阈值当显著性检验</td></tr>
   </tbody>
 </table>
-<h3>常用命令</h3>
-<pre><code># source run
-pnpm dsh --profile headless --patch ./packages/experimental/lcrd/cordis.patch.yml "task"
+</section>
 
-# frozen gate profile (once)
-dsh plugin --profile lcrd-gate add @deepseek-ai/dsh-base @deepseek-ai/dsh-headless @deepseek-ai/dsh-experimental-lcrd-gate
+<section id="cli">
+<h2>11. 全部 CLI 参数</h2>
+<p>脚本是仓库开发/运维工具；<code>lcrd:*</code> 命令不随 npm 包发布。运行时策略 API 由插件导出，脚本只是薄封装。</p>
 
-# policy operations
-pnpm run lcrd:policy -- show
-pnpm run lcrd:policy -- promote v0002
-pnpm run lcrd:policy -- rollback --reason "..."
-pnpm run lcrd:policy -- audit-hardout --benchmark ./benchmark
-pnpm run lcrd:policy -- clear-hold
+<h3>11.1 <code>pnpm run lcrd:policy</code></h3>
+<table>
+  <thead><tr><th>子命令</th><th>参数</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td><code>show</code></td><td><code>--policy &lt;dir&gt;</code></td><td>打印 current pointer、manifest、quarantine。</td></tr>
+    <tr><td><code>promote</code></td><td><code>&lt;version&gt;</code>, <code>--policy</code></td><td>离线 promote 一个 gated 版本（operator 身份）。</td></tr>
+    <tr><td><code>rollback</code></td><td><code>--reason &lt;text&gt;</code>, <code>--policy</code></td><td>回退当前版本到 parent，写 ledger/notice。</td></tr>
+    <tr><td><code>audit-hardout</code></td><td><code>--benchmark &lt;dir&gt;</code>, <code>--profile</code>, <code>--command</code>, <code>--policy</code></td><td>运行 sealed hard-out 审计；失败置 promotionHeld。</td></tr>
+    <tr><td><code>clear-hold</code></td><td><code>--policy</code></td><td>清除 promotionHeld。</td></tr>
+    <tr><td><code>noise</code></td><td>见下表</td><td>固定版本、固定任务集，重复多轮测噪声地板。</td></tr>
+  </tbody>
+</table>
+<table>
+  <thead><tr><th>noise 参数</th><th>默认</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>--policy &lt;dir&gt;</code></td><td><code>packages/experimental/lcrd/policy</code></td><td>策略根；读取 current version。</td></tr>
+    <tr><td><code>--benchmark &lt;dir&gt;</code></td><td>必填</td><td>benchmark 根；使用 holdout（按 id 排序取前 N）。</td></tr>
+    <tr><td><code>--tasks &lt;n&gt;</code></td><td>整个 holdout</td><td>固定任务数量；必须 ≥1。</td></tr>
+    <tr><td><code>--rounds &lt;n&gt;</code></td><td>10</td><td>重复轮数；每轮一个 rewardRate。</td></tr>
+    <tr><td><code>--repeats &lt;n&gt;</code></td><td>3</td><td>每轮每任务重复数；n = tasks × repeats。</td></tr>
+    <tr><td><code>--timeout &lt;ms&gt;</code></td><td>900000</td><td>单个 child/reward 超时。</td></tr>
+    <tr><td><code>--min-gain &lt;n&gt;</code></td><td>0.1</td><td>计算 required n 的目标增益。</td></tr>
+    <tr><td><code>--alpha &lt;n&gt;</code></td><td>0.05</td><td>正态近似/bootstrap 错误率。</td></tr>
+    <tr><td><code>--command &lt;cmd&gt;</code></td><td><code>dsh</code></td><td>gate child 命令。</td></tr>
+    <tr><td><code>--profile &lt;name&gt;</code></td><td><code>lcrd-gate</code></td><td>gate child profile。</td></tr>
+    <tr><td><code>--gate-args &lt;json|words&gt;</code></td><td>[]</td><td>child 前置参数；JSON 数组或空白分隔。</td></tr>
+    <tr><td><code>--run-max-tokens &lt;n&gt;</code></td><td>200000</td><td>单 run token 上限。</td></tr>
+    <tr><td><code>--max-tokens &lt;n&gt;</code></td><td>runMaxTokens × tasks × repeats</td><td>单轮总 token 预算。</td></tr>
+    <tr><td><code>--max-wall-ms &lt;ms&gt;</code></td><td>timeout × tasks × repeats</td><td>单轮墙钟预算。</td></tr>
+    <tr><td><code>--base-config &lt;json&gt;</code></td><td>{}</td><td>baseConfig JSON 文件；必须与生产 gate 一致。</td></tr>
+    <tr><td><code>--keep-artifacts &lt;dir&gt;</code></td><td>临时目录，自动删除</td><td>保留每轮 overlay/run 产物。</td></tr>
+    <tr><td><code>--markdown &lt;file&gt;</code></td><td>—</td><td>把 noise 表格写入文件。</td></tr>
+  </tbody>
+</table>
 
-# evidence / noise
-pnpm run lcrd:policy -- noise --benchmark <dir> --profile lcrd-gate
-pnpm run lcrd:audit -- --dataset <corpus> --benchmark <dir>
-pnpm run lcrd:dpo
+<h3>11.2 <code>pnpm run lcrd:dpo</code></h3>
+<table>
+  <thead><tr><th>参数</th><th>默认</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>--dataset &lt;dir&gt;</code></td><td><code>packages/experimental/lcrd/dataset</code></td><td>dataset corpus 目录。</td></tr>
+    <tr><td><code>--sessions &lt;dir&gt;</code></td><td><code>~/.dsh/sessions</code></td><td>session log 根；用于重建 prompt 转录。</td></tr>
+    <tr><td><code>--out &lt;file&gt;</code></td><td><code>&lt;dataset&gt;/dpo.jsonl</code></td><td>输出 DPO JSONL。</td></tr>
+    <tr><td><code>--format trl|messages</code></td><td><code>trl</code></td><td>输出 message 形式或 TRL 列形式。</td></tr>
+    <tr><td><code>--causes all|list</code></td><td><code>substance-dropped</code></td><td>选择放松 cause；all 包含 type-adaptation/undetermined。</td></tr>
+    <tr><td><code>--limit &lt;n&gt;</code></td><td>无</td><td>最多导出多少 pair。</td></tr>
+    <tr><td><code>--sample &lt;n&gt;</code></td><td>0</td><td>把前 n 个 pair 打印到 stdout。</td></tr>
+  </tbody>
+</table>
 
-# weight route
-pnpm run lcrd:weight-eval -- --benchmark <dir> --base-runner <cmd> --candidate-runner <cmd>
-pnpm run lcrd:checkpoint -- register --id <id> --base <model> --adapter <path> --eval <eval.json>
-pnpm run lcrd:checkpoint -- promote --id <id>
+<h3>11.3 <code>pnpm run lcrd:audit</code></h3>
+<table>
+  <thead><tr><th>参数</th><th>默认</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>--dataset &lt;dir&gt;</code></td><td><code>packages/experimental/lcrd/dataset</code></td><td>corpus 目录。</td></tr>
+    <tr><td><code>--benchmark &lt;dir&gt;</code></td><td>无</td><td>做 task_id 泄漏检查。</td></tr>
+    <tr><td><code>--out &lt;file&gt;</code></td><td>无</td><td>写 Markdown 报告。</td></tr>
+    <tr><td><code>--json</code></td><td>false</td><td>输出 JSON 而不是 Markdown。</td></tr>
+  </tbody>
+</table>
+
+<h3>11.4 <code>pnpm run lcrd:weight-eval</code></h3>
+<table>
+  <thead><tr><th>参数</th><th>默认</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>--benchmark &lt;dir&gt;</code></td><td>必填</td><td>benchmark 根；使用 holdout。</td></tr>
+    <tr><td><code>--base-runner &lt;cmd&gt;</code></td><td>必填</td><td>base 模型的 runner shell 命令。</td></tr>
+    <tr><td><code>--candidate-runner &lt;cmd&gt;</code></td><td>必填</td><td>候选/checkpoint runner。</td></tr>
+    <tr><td><code>--tasks &lt;n&gt;</code></td><td>整个 holdout</td><td>按 id 排序取前 n。</td></tr>
+    <tr><td><code>--timeout &lt;ms&gt;</code></td><td>900000</td><td>runner/reward 超时。</td></tr>
+    <tr><td><code>--out &lt;file&gt;</code></td><td>无</td><td>写 JSON report。</td></tr>
+  </tbody>
+</table>
+<p><strong>Runner 契约</strong>：cwd 是隔离 workspace；环境变量 <code>LCRD_EVAL_PROMPT</code>、<code>LCRD_EVAL_TASK_ID</code>、<code>LCRD_EVAL_SIDE</code>；exit 0 表示完成，随后脚本执行任务的 reward。runner 必须自己读 prompt 并写任务产物；不要依赖 shell 拼接 prompt。</p>
+
+<h3>11.5 <code>pnpm run lcrd:checkpoint</code></h3>
+<table>
+  <thead><tr><th>子命令</th><th>参数</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td><code>register</code></td><td><code>--id --base --adapter --eval [--parent] [--note] [--root]</code></td><td>注册不可变 manifest，复制 eval 证据；拒绝重复 id/非法 eval。</td></tr>
+    <tr><td><code>list</code></td><td><code>--root</code></td><td>列出 checkpoint 与 current 标记。</td></tr>
+    <tr><td><code>show</code></td><td><code>--id</code></td><td>打印 manifest 与 current pointer。</td></tr>
+    <tr><td><code>promote</code></td><td><code>--id</code></td><td>移动 registry 指针；写 events。</td></tr>
+    <tr><td><code>rollback</code></td><td><code>--root</code></td><td>回到 current 的 parent。</td></tr>
+    <tr><td><code>current</code></td><td><code>--root</code></td><td>打印 current pointer。</td></tr>
+  </tbody>
+</table>
+
+<h3>11.6 训练脚手架</h3>
+<table>
+  <thead><tr><th>脚本</th><th>关键参数</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><code>training/prepare_dpo.py</code></td><td><code>--dataset --out --eval-fraction --seed</code></td><td>按 task_group/run_id 分组切分，禁止按行切；产出 train/eval JSONL + manifest。</td></tr>
+    <tr><td><code>training/train_dpo.py</code></td><td><code>--model --data --out --epochs --batch-size --grad-accum --lr --max-length --lora-r --lora-alpha --no-4bit --bf16</code></td><td>QLoRA DPO；需要 open-weight 模型 + GPU；输出 adapter + training_manifest。</td></tr>
+  </tbody>
+</table>
+
+<h3>11.7 Gate profile 初始化</h3>
+<pre><code>dsh plugin --profile lcrd-gate add \
+  @deepseek-ai/dsh-base \
+  @deepseek-ai/dsh-headless \
+  @deepseek-ai/dsh-experimental-lcrd-gate
 </code></pre>
+<p>然后设置 <code>evolveGateProfile: lcrd-gate</code>。裸 <code>headless</code> 不含 LCRD，overlay 只覆盖 <code>id: lcrd</code>，不会插入该行。</p>
 </section>
 
 <section id="security">
-<h2>10. 安全与信任边界</h2>
+<h2>12. 安全与信任边界</h2>
+<h3>12.1 威胁模型</h3>
+<table>
+  <thead><tr><th>威胁</th><th>防线</th><th>残余风险</th></tr></thead>
+  <tbody>
+    <tr><td>模型自我宣告完成/跳过校验</td><td>任务工具必须先在 <code>lcrd_plan</code> 声明，post-execute 外生校验；失败阻断</td><td>校验表达式本身可能写得太松；用区分度/ presence-only/ hold-rate 门禁</td></tr>
+    <tr><td>模型写恶意 skill</td><td>静态扫描 + skill 只是数据 + 人工 promote</td><td>启发式可被改写；需要人工审阅与后续监控</td></tr>
+    <tr><td>candidate 读取 baseline 产物</td><td>每 run 独立 workspace + fixture 复制</td><td>绝对路径/共享外部资源仍可能泄漏；holdout 隔离是部署责任</td></tr>
+    <tr><td>门禁伪造结果</td><td>report/manifest/ledger 由引擎写；模型不能写</td><td>运维误操作/磁盘损坏；用备份与 invariant</td></tr>
+    <tr><td>任意代码执行</td><td>assert 受限语法；python 固定模板；不提供 command 校验器</td><td>python 解释器本身与 reward 命令是受信部署代码</td></tr>
+    <tr><td>session 协议破坏</td><td>不新增 session 事件；策略记录在 store</td><td>旧构建看不到新策略；store 需独立备份</td></tr>
+  </tbody>
+</table>
+<h3>12.2 信任主体</h3>
 <ul>
-  <li><strong>Skill 是数据</strong>：不能写门禁结果/指针/审批；静态扫描是启发式，真正防线是数据化 + 外生校验 + 人工 promote。</li>
-  <li><strong>Benchmark/reward 是运维可信</strong>：reward 以 <code>shell: true</code> 在隔离 workspace 运行；candidate 看不到其他 run 的产物。</li>
-  <li><strong>Holdout/hard-out 隔离</strong>：部署责任；必须在模型可读根之外；插件只校验不在 skill 根内。</li>
-  <li><strong>无新 session 事件</strong>：通知/切换走既有 tool-result/additional-context；策略记录只在 store。</li>
-  <li><strong>无任意代码执行</strong>：<code>assert</code> 是受限表达式；不提供模型可指定的 <code>command</code> 校验器；训练不在 agent 内启动。</li>
-  <li><strong>默认 approval</strong>：统计证据不足时不要 auto；detectability/headroom 先过线。</li>
+  <li><strong>模型</strong>：不可信，只提供数据/声明/文本。</li>
+  <li><strong>部署/运维</strong>：可信；benchmark、reward、hooks、attribution、gate profile 都是部署代码/产物。</li>
+  <li><strong>审批人</strong>：权威；默认 promote 决定。</li>
+  <li><strong>插件/引擎</strong>：拥有判定、指针、账本、终止状态。</li>
+</ul>
+<h3>12.3 不做的事</h3>
+<ul>
+  <li>不在 agent 内启动训练；不把 checkpoint 写进 policy store（用 <code>lcrd:checkpoint</code>）。</li>
+  <li>不提供模型可指定的任意 command verifier；不要为了“方便”打开这个面。</li>
+  <li>不把 holdout/hardout 放在模型可读根内；插件只能校验不在 skill 根。</li>
 </ul>
 </section>
 
 <section id="testing">
-<h2>11. 测试与质量门禁</h2>
-<p>当前包测试覆盖协议、校验器、学习、演化、门禁、store、隔离、dataset、报告、拒绝反馈与脚本底座：</p>
+<h2>13. 测试与质量门禁</h2>
 <pre><code>pnpm exec vitest run packages/experimental/lcrd
 pnpm exec vitest run packages/experimental/lcrd --coverage   # per-file 100%
 pnpm run doc-typecheck
 pnpm exec oxlint .
 pnpm run test:docs
+pnpm run verify-package-readme-model-experience
+pnpm run verify-translation-pairing
 </code></pre>
-<p>门禁重点：<code>detectability</code> 在噪声地板内；<code>headroom</code> 足够；missing reward 不静默丢对；baseline-only abort 写 report；propose 区分 <code>gate-aborted</code>/<code>gate-failed</code>；rejected-edits 有界；权重 registry 与 skill store 分离。</p>
+<table>
+  <thead><tr><th>区域</th><th>覆盖点</th></tr></thead>
+  <tbody>
+    <tr><td>运行时</td><td>根锚、计划声明、assert/python/llm、失败回退、终止、学习轮、文件流、交互模式</td></tr>
+    <tr><td>演化</td><td>提案、静态扫描、版本/store、holdout、gate、brief、promote、monitor、hardout、拒绝反馈</td></tr>
+    <tr><td>门禁</td><td>headroom、missing reward、detectability、significance、baseline-only abort、outcome/stage</td></tr>
+    <tr><td>脚本</td><td>dataset audit、weight eval、checkpoint registry、训练脚本 py_compile</td></tr>
+    <tr><td>文档</td><td>README 结构、Model Experience、双语 pairing、链接/换行、配置目录</td></tr>
+  </tbody>
+</table>
+</section>
+
+<section id="troubleshooting">
+<h2>14. 常见故障排查</h2>
+<table>
+  <thead><tr><th>症状</th><th>原因</th><th>处理</th></tr></thead>
+  <tbody>
+    <tr><td>probe: candidate produced no run.json</td><td>gate profile 不含 LCRD/skill，或 policyDir 不可读</td><td>用 <code>lcrd-gate</code> profile；检查 <code>evolveGateProfile</code>/绝对 <code>evolvePolicyDir</code></td></tr>
+    <tr><td>gate-aborted: no headroom</td><td>baseline rewardRate 太高，最大增益小于 minGain</td><td>换更难任务，或提高 holdout 难度/降低 minGain；不要继续调 skill</td></tr>
+    <tr><td>gate-aborted: baseline/candidate reward missing</td><td>run 未产出 run.json/reward，仪器不完整</td><td>查 gate-stderr、profile、任务 reward；不要把它当 0 分</td></tr>
+    <tr><td>gated-failed: insufficient evidence</td><td>detectability &gt; minGain，或 significance CI 包含 0</td><td>增加 repeats/holdout、降低门槛、先跑 noise</td></tr>
+    <tr><td>gated-failed: termination regression</td><td>零容忍策略阈值（不是统计显著）</td><td>审阅运行；这是策略拒绝，不要用 p 值辩护</td></tr>
+    <tr><td>audit skips: holdout pool exhausted</td><td>pool 太小或 cooldown 太大</td><td>扩 pool 或降低 cooldown/holdoutSize</td></tr>
+    <tr><td>dataset audit 退出 1</td><td>corpus 缺失/文件缺失</td><td>先跑 <code>datasetExport: run</code> 或提供 <code>--dataset</code></td></tr>
+    <tr><td>weight eval 全部 runner failure</td><td>runner 命令/环境错误或 prompt 未处理</td><td>检查 <code>LCRD_EVAL_PROMPT</code>/cwd 契约；先在单任务跑 runner</td></tr>
+    <tr><td>checkpoint register 拒绝</td><td>eval 报告缺字段/pairs 为空/重复 id</td><td>用 <code>lcrd:weight-eval</code> 的输出；检查 id 与 parent</td></tr>
+    <tr><td>文件流路径被拒</td><td>task-flow 根在沙箱不可写，或写到其他任务目录</td><td>把 <code>logDir</code> 放 workspace 下；设置 <code>workspaceRoot</code></td></tr>
+    <tr><td>Python 校验失败</td><td><code>pythonCommand</code> 不可执行/超时</td><td>检查解释器路径与 <code>pythonTimeoutMs</code></td></tr>
+  </tbody>
+</table>
 </section>
 
 <section id="limits">
-<h2>12. 限制与路线</h2>
+<h2>15. 限制与路线</h2>
 <ul>
-  <li>提示词层上限：skill 只能买来 prompt 能买到的能力；权重是另一条闭环。</li>
-  <li>统计功效：默认 5×3 小样本；显著性默认 off；先跑 noise 再决定。</li>
-  <li>基准饱和：基线过高时 headroom 不足，应该换有失败空间的任务，而不是继续调 skill。</li>
-  <li>缺 reward 的 run 是仪器失败，不是 0 分；先修数据/挂载，再跑门禁。</li>
-  <li>在线 RSI 未实现；权重训练需要 open-weight + GPU；当前只有 scaffold。</li>
-  <li>配置目录生成器在 <code>Config</code> 移到 <code>config.ts</code> 后把 lcrd 归为 library；这是独立文档工具问题。</li>
+  <li><strong>提示词上限</strong>：skill 只改程序性知识，不改权重；能力上限由提示词能买到的部分决定。</li>
+  <li><strong>统计功效</strong>：默认 5×3 是小样本；显著性默认 off；先 noise，再决定参数。</li>
+  <li><strong>基准饱和</strong>：基线 0.95 时 headroom 不足；换 0.3–0.7 的失败空间，而不是继续堆 skill。</li>
+  <li><strong>仪器失败</strong>：missing reward 不是 0 分；baseline/candidate 缺失必须修，不要静默丢对。</li>
+  <li><strong>在线 RSI</strong>：未实现；当前只有离线训练脚手架与 checkpoint 控制面。</li>
+  <li><strong>权重训练</strong>：需要 open-weight 模型 + GPU；API 模型不可训练。</li>
+  <li><strong>配置目录</strong>：<code>Config</code> 移到 <code>config.ts</code> 后生成器把 lcrd 归为 library；独立文档工具问题。</li>
+  <li><strong>搜索能力</strong>：单候选提案，无种群/归档/credit assignment；这是门禁层，不是搜索优化器。</li>
 </ul>
 </section>
 
 <section id="filemap">
-<h2>13. 文件地图</h2>
+<h2>16. 文件地图</h2>
 <table>
   <thead><tr><th>区域</th><th>文件</th></tr></thead>
   <tbody>
-    <tr><td>协议</td><td><code>src/index.ts</code>, <code>src/wiring.ts</code>, <code>src/config.ts</code>, <code>src/anchor.ts</code>, <code>src/plan-tool.ts</code>, <code>src/step-verify.ts</code>, <code>src/verifiers.ts</code>, <code>src/expr.ts</code></td></tr>
-    <tr><td>运行时状态</td><td><code>src/state.ts</code>, <code>src/step-learn.ts</code>, <code>src/step-terminate.ts</code>, <code>src/learn-tools.ts</code></td></tr>
-    <tr><td>文件流</td><td><code>src/file-flow.ts</code>, <code>src/file-flow-guard.ts</code></td></tr>
-    <tr><td>演化</td><td><code>src/evolve/propose-tool.ts</code>, <code>static-check.ts</code>, <code>holdout.ts</code>, <code>gate.ts</code>, <code>launch.ts</code>, <code>brief.ts</code>, <code>store.ts</code>, <code>monitor.ts</code>, <code>hardout.ts</code>, <code>report.ts</code>, <code>significance.ts</code></td></tr>
-    <tr><td>证据</td><td><code>src/flow.ts</code>, <code>src/dataset.ts</code>, <code>src/notice.ts</code>, <code>src/invariant.ts</code></td></tr>
+    <tr><td>入口/配置</td><td><code>src/index.ts</code>, <code>src/wiring.ts</code>, <code>src/config.ts</code></td></tr>
+    <tr><td>运行时协议</td><td><code>src/anchor.ts</code>, <code>plan-tool.ts</code>, <code>step-verify.ts</code>, <code>verifiers.ts</code>, <code>expr.ts</code>, <code>declaration.ts</code></td></tr>
+    <tr><td>状态/学习</td><td><code>src/state.ts</code>, <code>step-learn.ts</code>, <code>step-terminate.ts</code>, <code>learn-tools.ts</code>, <code>lifecycle.ts</code></td></tr>
+    <tr><td>文件流</td><td><code>src/file-flow.ts</code>, <code>file-flow-guard.ts</code></td></tr>
+    <tr><td>演化</td><td><code>src/evolve/propose-tool.ts</code>, <code>static-check.ts</code>, <code>holdout.ts</code>, <code>gate.ts</code>, <code>launch.ts</code>, <code>brief.ts</code>, <code>store.ts</code>, <code>monitor.ts</code>, <code>hardout.ts</code>, <code>report.ts</code>, <code>significance.ts</code>, <code>types.ts</code></td></tr>
+    <tr><td>证据</td><td><code>src/flow.ts</code>, <code>flow-format.ts</code>, <code>flow-render.ts</code>, <code>dataset.ts</code>, <code>notice.ts</code>, <code>invariant.ts</code>, <code>attribution.ts</code>, <code>hooks.ts</code></td></tr>
     <tr><td>基准</td><td><code>benchmarks/example/</code>, <code>benchmarks/repo-fix/</code></td></tr>
-    <tr><td>运维</td><td><code>scripts/lcrd-policy.ts</code>, <code>lcrd-audit</code>, <code>lcrd-weight-eval</code>, <code>lcrd-checkpoint</code>, <code>lcrd-dpo</code></td></tr>
+    <tr><td>运维脚本</td><td><code>scripts/lcrd-policy.ts</code>, <code>lcrd-dpo-export.ts</code>, <code>lcrd-dataset-audit.ts</code>, <code>lcrd-weight-eval.ts</code>, <code>lcrd-checkpoint.ts</code></td></tr>
     <tr><td>权重脚手架</td><td><code>training/prepare_dpo.py</code>, <code>training/train_dpo.py</code>, <code>training/README.md</code></td></tr>
+    <tr><td>测试</td><td><code>tests/lcrd*.spec.ts</code>, <code>tests/evolve-*.spec.ts</code>, <code>tests/file-flow-composition.spec.ts</code>, <code>tests/hooks.spec.ts</code></td></tr>
   </tbody>
 </table>
-<p class="footer">LCRD architecture reference · prompt-level hard isolation + gated policy evolution · 详细命令与配置以源码和 README 为准。</p>
+<p class="small muted">本手册按当前源码字段整理；若 Config 变更，请同步更新本页与 README。配置默认值以 <code>src/config.ts</code> 为准，脚本参数以对应 <code>scripts/lcrd-*.ts</code> 为准。</p>
 </section>
+
+<p class="footer">LCRD 功能与参数参考 · 当前实现以源码 schema 与测试为准 · 文档入口：<a href="../README.md">README</a></p>
 </main>
 </div>
 </body>
